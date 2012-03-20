@@ -80,6 +80,10 @@
 #include "Memory.h"
 #include "DB2Stores.h"
 
+//TODO REMOVE
+#include "CreatureAISelector.h"
+#include "CreatureAIFactory.h"
+
 volatile bool World::m_stopEvent = false;
 uint8 World::m_ExitCode = SHUTDOWN_EXIT_CODE;
 volatile uint32 World::m_worldLoopCounter = 0;
