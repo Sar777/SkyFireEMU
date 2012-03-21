@@ -1095,7 +1095,7 @@ void WorldSession::ProcessQueryCallbacks()
 
     //- HandleStablePet
     if (_stablePetCallback.IsReady())
-    {   
+    {
         uint32 param = _stablePetCallback.GetParam();
         _stablePetCallback.GetResult(result_old);
         HandleStablePetCallback(result_old);
@@ -1118,5 +1118,5 @@ void WorldSession::ProcessQueryCallbacks()
         _stableSwapCallback.GetResult(result_old);
         HandleStableSwapPetCallback(result_old, param);
         _stableSwapCallback.FreeResult();
-    } 
+    }
 }

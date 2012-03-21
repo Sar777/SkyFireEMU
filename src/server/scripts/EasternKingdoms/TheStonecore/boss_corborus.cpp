@@ -96,9 +96,7 @@ public:
             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
                 summoned->AI()->AttackStart(target);
 
-
             Summons.Summon(summoned);
-
         }
 
         void SummonedCreatureDespawn(Creature* summon)
