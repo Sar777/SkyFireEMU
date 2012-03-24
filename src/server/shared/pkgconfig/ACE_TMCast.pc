@@ -1,0 +1,11 @@
+prefix=/home/orion/.sys
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: ACE_TMCast
+Description: ACE Transaction Multicast Library
+Requires: ACE
+Version: 6.0.0
+Libs: -L${libdir} -lACE_TMCast
+Cflags: -I${includedir}

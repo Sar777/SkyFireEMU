@@ -1,0 +1,11 @@
+prefix=/home/orion/.sys
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: ACEXML
+Description: ACE XML Library
+Requires: ACE
+Version: 6.0.0
+Libs: -L${libdir} -lACEXML
+Cflags: -I${includedir}
