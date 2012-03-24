@@ -924,12 +924,12 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     // Checks gmlevel per Realm
     result =
         LoginDatabase.PQuery ("SELECT "
-                              "RealmID, "            //0
-                              "gmlevel "             //1
-                              "FROM account_access "
-                              "WHERE id = '%d'"
-                              " AND (RealmID = '%d'"
-                              " OR RealmID = '-1')",
+                              "realmID, "            //0
+                              "Security "             //1
+                              "FROM account_forcepermission "
+                              "WHERE AccountID = '%d'"
+                              " AND (realmID = '%d'"
+                              " OR realmID = '-1')",
                               id, realmID);
     if (!result)
         security = 0;

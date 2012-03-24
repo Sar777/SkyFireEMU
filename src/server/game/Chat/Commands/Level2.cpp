@@ -328,10 +328,10 @@ bool ChatHandler::HandlePInfoCommand(const char* args)
     uint32 security = 0;
     std::string last_login = GetSkyFireString(LANG_ERROR);
 
-    QueryResult result = LoginDatabase.PQuery("SELECT a.username, aa.gmlevel, a.email, a.last_ip, a.last_login, a.mutetime "
+    QueryResult result = LoginDatabase.PQuery("SELECT a.username, af.Security, a.email, a.last_ip, a.last_login, a.mutetime "
                                                 "FROM account a "
-                                                "LEFT JOIN account_access aa "
-                                                "ON (a.id = aa.id AND (aa.RealmID = -1 OR aa.RealmID = %u)) "
+                                                "LEFT JOIN account_forcepermission af "
+                                                "ON (a.id = af.AccountID AND (af.realmID = -1 OR af.realmID = %u)) "
                                                 "WHERE a.id = '%u'", realmID, accId);
     if (result)
     {

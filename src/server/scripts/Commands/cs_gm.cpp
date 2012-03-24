@@ -162,7 +162,7 @@ public:
     static bool HandleGMListFullCommand(ChatHandler* handler, char const* /*args*/)
     {
         ///- Get the accounts with GM Level >0
-        QueryResult result = LoginDatabase.PQuery("SELECT a.username, aa.gmlevel FROM account a, account_access aa WHERE a.id=aa.id AND aa.gmlevel >= %u AND (aa.realmid = -1 OR aa.realmid = %u)", SEC_MODERATOR, realmID);
+        QueryResult result = LoginDatabase.PQuery("SELECT a.username, af.Security FROM account a, account_forcepermission af WHERE a.id=af.AccountID AND af.Security >= %u AND (af.realmID = -1 OR af.realmID = %u)", SEC_MODERATOR, realmID);
         if (result)
         {
             handler->SendSysMessage(LANG_GMLIST);

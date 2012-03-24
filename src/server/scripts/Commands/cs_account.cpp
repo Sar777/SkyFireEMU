@@ -215,10 +215,10 @@ public:
             ///- Get the username, last IP and GM level of each account
             // No SQL injection. account is uint32.
             QueryResult resultLogin =
-                LoginDatabase.PQuery("SELECT a.username, a.last_ip, aa.gmlevel, a.expansion "
+                LoginDatabase.PQuery("SELECT a.username, a.last_ip, af.Security, a.expansion "
                 "FROM account a "
-                "LEFT JOIN account_access aa "
-                "ON (a.id = aa.id) "
+                "LEFT JOIN account_access af "
+                "ON (a.id = af.AccountID) "
                 "WHERE a.id = '%u'", account);
 
             if (resultLogin)
@@ -465,7 +465,7 @@ public:
         // Check and abort if the target gm has a higher rank on one of the realms and the new realm is -1
         if (gmRealmID == -1 && !AccountMgr::IsConsoleAccount(playerSecurity))
         {
-            QueryResult result = LoginDatabase.PQuery("SELECT * FROM account_access WHERE id = '%u' AND gmlevel > '%d'", targetAccountId, gm);
+            QueryResult result = LoginDatabase.PQuery("SELECT * FROM account_forcepermission WHERE AccountID = '%u' AND Security > '%d'", targetAccountId, gm);
             if (result)
             {
                 handler->SendSysMessage(LANG_YOURS_SECURITY_IS_LOW);

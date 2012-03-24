@@ -89,7 +89,7 @@ AccountOpResult DeleteAccount(uint32 accountId)
     SQLTransaction trans = LoginDatabase.BeginTransaction();
 
     trans->PAppend("DELETE FROM account WHERE id='%d'", accountId);
-    trans->PAppend("DELETE FROM account_access WHERE id ='%d'", accountId);
+    trans->PAppend("DELETE FROM account_forcepermission WHERE AccountID ='%d'", accountId);
     trans->PAppend("DELETE FROM realmcharacters WHERE acctid='%d'", accountId);
 
     LoginDatabase.CommitTransaction(trans);
@@ -155,15 +155,15 @@ uint32 GetId(std::string username)
 
 uint32 GetSecurity(uint32 accountId)
 {
-    QueryResult result = LoginDatabase.PQuery("SELECT gmlevel FROM account_access WHERE id = '%u'", accountId);
+    QueryResult result = LoginDatabase.PQuery("SELECT Security FROM account_forcepermission WHERE AccountID = '%u'", accountId);
     return (result) ? (*result)[0].GetUInt32() : 0;
 }
 
 uint32 GetSecurity(uint64 accountId, int32 realmId)
 {
     QueryResult result = (realmId == -1)
-        ? LoginDatabase.PQuery("SELECT gmlevel FROM account_access WHERE id = '%u' AND RealmID = '%d'", accountId, realmId)
-        : LoginDatabase.PQuery("SELECT gmlevel FROM account_access WHERE id = '%u' AND (RealmID = '%d' OR RealmID = '-1')", accountId, realmId);
+        ? LoginDatabase.PQuery("SELECT Security FROM account_forcepermission WHERE AccountID = '%u' AND realmID = '%d'", accountId, realmId)
+        : LoginDatabase.PQuery("SELECT Security FROM account_forcepermission WHERE AccountID = '%u' AND (realmID = '%d' OR realmID = '-1')", accountId, realmId);
     return (result) ? (*result)[0].GetUInt32() : 0;
 }
 

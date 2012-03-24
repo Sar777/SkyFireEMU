@@ -1,9 +1,15 @@
 build*/
+src/server/shared*/
+bin*/
+etc*/
 .directory
 .mailmap
 *.orig
 *.rej
 *~
+*.log
+*.user
+
 .hg/
 *.kdev*
 *.bak
