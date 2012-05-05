@@ -259,6 +259,7 @@ void Creature::RemoveCorpse(bool setSpawnTime)
  */
 bool Creature::InitEntry(uint32 Entry, uint32 /*team*/, const CreatureData* data)
 {
+    // sLog->outString("Creature::InitEntry:\t[Entry: %u]", Entry);
     CreatureTemplate const* normalInfo = sObjectMgr->GetCreatureTemplate(Entry);
     if (!normalInfo)
     {
@@ -357,8 +358,9 @@ bool Creature::UpdateEntry(uint32 Entry, uint32 team, const CreatureData* data)
 
     _regenHealth = cInfo->RegenHealth;
 
-    // creatures always have melee weapon ready if any
-    SetSheath(SHEATH_STATE_MELEE);
+    // creatures always have melee weapon ready if any unless specified otherwise
+    if (!GetCreatureAddon())
+        SetSheath(SHEATH_STATE_MELEE);
 
     SelectLevel(GetCreatureTemplate());
     if (team == HORDE)

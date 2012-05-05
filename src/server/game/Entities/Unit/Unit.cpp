@@ -1569,7 +1569,6 @@ void Unit::CalcAbsorbResist(Unit* victim, SpellSchoolMask schoolMask, DamageEffe
     DamageInfo dmgInfo = DamageInfo(this, victim, damage, spellInfo, schoolMask, damagetype);
 
     // Magic damage, check for resists
-    // Ignore spells that cant be resisted
     if ((schoolMask & SPELL_SCHOOL_MASK_NORMAL) == 0)
     {
         float victimResistance = float(victim->GetResistance(schoolMask));
@@ -6643,7 +6642,7 @@ bool Unit::HandleDummyAuraProc(Unit* victim, uint32 damage, AuraEffect* triggere
                 {
                     // "refresh your Slice and Dice duration to its 5 combo point maximum"
                     // lookup Slice and Dice
-                    if (AuraEffect const* aur = GetAuraEffect(SPELL_AURA_MOD_MELEE_HASTE, SPELLFAMILY_ROGUE, 0x40000, 0, 0))
+                    if (AuraEffect const* aur = GetAuraEffect(SPELL_AURA_MOD_MELEE_ATTACK_SPEED, SPELLFAMILY_ROGUE, 0x40000, 0, 0))
                     {
                         aur->GetBase()->SetDuration(aur->GetSpellInfo()->GetMaxDuration(), true);
                         return true;
@@ -8100,6 +8099,7 @@ bool Unit::HandleAuraProc(Unit* victim, uint32 damage, Aura* triggeredByAura, Sp
     switch (dummySpell->SpellFamilyName)
     {
         case SPELLFAMILY_GENERIC:
+        {
             switch (dummySpell->Id)
             {
                 // Nevermelting Ice Crystal
@@ -8151,9 +8151,8 @@ bool Unit::HandleAuraProc(Unit* victim, uint32 damage, Aura* triggeredByAura, Sp
                     break;
                 }
             }
-
             break;
-
+        }
         case SPELLFAMILY_PRIEST:
         {
             if (!procSpell)
@@ -8166,23 +8165,32 @@ bool Unit::HandleAuraProc(Unit* victim, uint32 damage, Aura* triggeredByAura, Sp
                 case 2061:
                 case 32546:
                 {
-                    CastSpell(this, 81208, true);
-                    *handled = true;
-                    return true;
+                    if (HasAura(14751))
+                    {
+                        CastSpell(this, 81208, true);  // Chakra: Serenity
+                        *handled = true;
+                        break;
+                    }
                 }
                 case 33076:
                 case 596:
                 {
-                    CastSpell(this, 81206, true);
-                    *handled = true;
-                    return true;
+                    if (HasAura(14751))
+                    {
+                        CastSpell(this, 81206, true); // Chakra: Sanctuary
+                        *handled = true;
+                        break;
+                    }
                 }
                 case 585:
                 case 73510:
                 {
-                    CastSpell(this, 81209, true);
-                    *handled = true;
-                    break;
+                    if (HasAura(14751))
+                    {
+                        CastSpell(this, 81209, true); // Chakra: Chastise
+                        *handled = true;
+                        break;
+                    }
                 }
                 break;
             }
@@ -8211,7 +8219,7 @@ bool Unit::HandleAuraProc(Unit* victim, uint32 damage, Aura* triggeredByAura, Sp
                     *handled = true;
                 break;
             }
-            // Judgements of the Just
+            // Judgments of the Just
             else if (dummySpell->SpellIconID == 3015)
             {
                 *handled = true;
@@ -9919,7 +9927,10 @@ Unit* Unit::GetCharm() const
 void Unit::SetMinion(Minion *minion, bool apply, PetSlot slot)
 {
     sLog->outDebug(LOG_FILTER_UNITS, "SetMinion %u for %u, apply %u", minion->GetEntry(), GetEntry(), apply);
-
+    
+    if(slot == PET_SLOT_ACTUAL_PET_SLOT)
+        slot = ToPlayer()->_currentPetSlot;
+    
     if (apply)
     {
         if (!minion->AddUInt64Value(UNIT_FIELD_SUMMONEDBY, GetGUID()))
@@ -9969,19 +9980,21 @@ void Unit::SetMinion(Minion *minion, bool apply, PetSlot slot)
 
         if (GetTypeId() == TYPEID_PLAYER)
         {
-            if(!minion->isHunterPet()) //If its not a Hunter Pet, well lets not try to use it for hunters then.
-            {
+            // If its not a Hunter Pet, only set pet slot. use setPetSlotUsed only for hunter pets.
+            // Always save thoose spots where hunter is correct
+            if (!minion->isHunterPet())
                 ToPlayer()->_currentPetSlot = slot;
-                ToPlayer()->_petSlotUsed = 3452816845; // the same as 100 so that the pet is only that and nothing more
-                // ToPlayer()->setPetSlotUsed(slot, true);
-            }
-            if (slot >= PET_SLOT_HUNTER_FIRST && slot <= PET_SLOT_HUNTER_LAST) // Always save thoose spots where hunter is correct
+            else if (slot >= PET_SLOT_HUNTER_FIRST && slot <= PET_SLOT_HUNTER_LAST)
             {
                 ToPlayer()->_currentPetSlot = slot;
                 ToPlayer()->setPetSlotUsed(slot, true);
             }
+            else
+            {
+                sLog->outCrash("Unit::SetMinion. Try to add hunter pet to not alawed slot(%u). Minion %u for %u", slot, minion->GetEntry(), ToPlayer()->GetEntry());
+                ASSERT(false);
+            }
         }
-
         if (minion->HasUnitTypeMask(UNIT_MASK_CONTROLABLE_GUARDIAN))
             AddUInt64Value(UNIT_FIELD_SUMMON, minion->GetGUID());
 

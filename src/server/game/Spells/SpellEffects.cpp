@@ -544,22 +544,21 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                     case 588:    // inner fire
                         m_caster->RemoveAurasDueToSpell(73413);
                          break;
-                }
+                    case 589:    // Shadow Word: Pain | mind flay
+                    case 15407:
+                        if (m_caster->HasSpell(95740))   // Shadow Orbs
+                        {
+                            int chance = 10;
 
-                if (m_spellInfo->Id == 589 || m_spellInfo->Id == 15407)  // Shadow Word: Pain | mind flay
-                {
-                    if (m_caster->HasSpell(95740))   // Shadow Orbs
-                    {
-                        int chance = 10;
+                            if (m_caster->HasAura(33191)) // Harnessed Shadows rank1
+                                chance += 4;
+                            else if (m_caster->HasAura(78228))  // Harnessed Shadows rank2
+                                chance += 8;
 
-                        if (m_caster->HasAura(33191)) // Harnessed Shadows rank1
-                            chance += 4;
-                        else if (m_caster->HasAura(78228))  // Harnessed Shadows rank2
-                            chance += 8;
-
-                        if (roll_chance_i(chance))
-                            m_caster->CastSpell(m_caster, 77487, true);
-                    }
+                            if (roll_chance_i(chance))
+                                m_caster->CastSpell(m_caster, 77487, true);
+                        }
+                        break;
                 }
                 // Evangelism: Rank 1
                 if (Aura* evan1 = m_caster->GetAura(81659))
@@ -578,11 +577,6 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                     m_caster->CastSpell(m_caster, 87154, true);
                     m_caster->RemoveAurasDueToSpell(87118);
                     m_caster->RemoveAurasDueToSpell(87117);
-                }
-                if (m_caster->HasAura(14751)) // Chakra
-                {
-                    m_caster->CastSpell(m_caster, 81209, true);
-                    m_caster->RemoveAurasDueToSpell(14751);
                 }
                 break;
             }
@@ -3360,6 +3354,8 @@ void Spell::EffectProficiency(SpellEffIndex /*effIndex*/)
 
 void Spell::EffectSummonType(SpellEffIndex effIndex)
 {
+    sLog->outString("\n\nThis is intressting too\n\n");
+    
     if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT)
         return;
 
@@ -4185,7 +4181,7 @@ void Spell::EffectTameCreature(SpellEffIndex /*effIndex*/)
 
     if (m_caster->GetTypeId() == TYPEID_PLAYER)
     {
-        pet->SavePetToDB(PET_SLOT_ACTUAL_PET_SLOT);
+        pet->SavePetToDB(m_caster->ToPlayer()->getSlotForNewPet());
         m_caster->ToPlayer()->PetSpellInitialize();
     }
 }
@@ -4194,7 +4190,7 @@ void Spell::EffectSummonPet(SpellEffIndex effIndex)
 {
     if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT)
         return;
-
+    
     Player* owner = NULL;
     if (m_originalCaster)
     {
@@ -4204,7 +4200,7 @@ void Spell::EffectSummonPet(SpellEffIndex effIndex)
     }
 
     uint32 petentry = m_spellInfo->Effects[effIndex].MiscValue;
-
+    // My work sLog->outString("\n\npetentry [%u]\n\n", petentry);
     if (!owner)
     {
         SummonPropertiesEntry const* properties = sSummonPropertiesStore.LookupEntry(67);
@@ -6903,22 +6899,28 @@ void Spell::EffectSummonDeadPet(SpellEffIndex /*effIndex*/)
     if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT)
         return;
 
-    if (m_caster->GetTypeId() != TYPEID_PLAYER)
-        return;
-    Player* _player = m_caster->ToPlayer();
-    Pet* pet = _player->GetPet();
-    if (!pet)
+    Player* player = m_caster->ToPlayer();
+    if (!player)
         return;
 
-    if (pet->isAlive())
+    Pet* pet = player->GetPet();
+    if (pet && pet->isAlive())
         return;
 
     if (damage < 0)
         return;
 
     float x, y, z;
-    _player->GetPosition(x, y, z);
-    _player->GetMap()->CreatureRelocation(pet, x, y, z, _player->GetOrientation());
+    player->GetPosition(x, y, z);
+    if (!pet)
+    {                                    
+        player->SummonPet(0, x, y, z, player->GetOrientation(), SUMMON_PET, 0);
+        pet = player->GetPet();
+    }
+    if (!pet)
+        return;
+
+    player->GetMap()->CreatureRelocation(pet, x, y, z, player->GetOrientation());
 
     pet->SetUInt32Value(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_NONE);
     pet->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
