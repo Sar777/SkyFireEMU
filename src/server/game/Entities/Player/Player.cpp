@@ -18397,7 +18397,6 @@ void Player::LoadPet()
     // just not added to the map
     if (IsInWorld())
     {
-        
         Pet* pet = new Pet(this);
         if (!pet->LoadPetFromDB(this, 0, 0, true, PET_SLOT_ACTUAL_PET_SLOT))
             delete pet;
@@ -26008,7 +26007,7 @@ PetSlot Player::getSlotForNewPet()
         last_known = 1;
 
     for (uint32 i = uint32(PET_SLOT_HUNTER_FIRST); i < last_known; i++)
-        if((_petSlotUsed & (1 << i)) == 0)
+        if ((_petSlotUsed & (1 << i)) == 0)
             return PetSlot(i);
 
     // If there is no slots available, then we should point that out
