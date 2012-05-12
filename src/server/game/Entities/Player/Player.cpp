@@ -6220,11 +6220,38 @@ bool Player::UpdateFishingSkill()
 
     uint32 SkillValue = GetPureSkillValue(SKILL_FISHING);
 
-    int32 chance = SkillValue < 75 ? 100 : 2500/(SkillValue-50);
+    float chance = 0.0f;
+
+    if (SkillValue <= 115)
+        chance = 100.0f;
+    else if (SkillValue <= 150)
+        chance = 50.0f;
+    else if (SkillValue <= 170)
+        chance = 33.33f;
+    else if (SkillValue <= 190)
+        chance = 25.0f;
+    else if (SkillValue <= 215)
+        chance = 20.0f;
+    else if (SkillValue <= 235)
+        chance = 16.67f;
+    else if (SkillValue <= 260)
+        chance = 14.29f;
+    else if (SkillValue <= 280)
+        chance = 12.5f;
+    else if (SkillValue <= 325)
+        chance = 11.11f;
+    else if (SkillValue <= 365)
+        chance = 10.0f;
+    else if (SkillValue <= 450)
+        chance = 9.1f;
+    else if (SkillValue <= 500)
+        chance = 11.11f;
+    else
+        chance = 10.0f;
 
     uint32 gathering_skill_gain = sWorld->getIntConfig(CONFIG_SKILL_GAIN_GATHERING);
 
-    return UpdateSkillPro(SKILL_FISHING, chance*10, gathering_skill_gain);
+    return UpdateSkillPro(SKILL_FISHING, (int32)(chance * 10.0f), gathering_skill_gain);
 }
 
 // levels sync. with spell requirement for skill levels to learn
@@ -14964,7 +14991,7 @@ void Player::OnGossipSelect(WorldObject* source, uint32 gossipListId, uint32 men
 
             if (bgTypeId == BATTLEGROUND_TYPE_NONE)
             {
-                sLog->outError("a user (guid %u) requested battlegroundlist from a npc who is no battlemaster", GetGUIDLow());
+                sLog->outError("a user (guid %u) requested battlegroundlist from a npc who is not a battlemaster", GetGUIDLow());
                 return;
             }
 
