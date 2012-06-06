@@ -794,7 +794,10 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 if (!IsUnit((*itr)))
                     continue;
 
-                (*itr)->ToUnit()->RemoveAurasDueToSpell(e.action.removeAura.spell);
+                if (e.action.removeAura.spell == 0)
+                    (*itr)->ToUnit()->RemoveAllAuras();
+                else
+                    (*itr)->ToUnit()->RemoveAurasDueToSpell(e.action.removeAura.spell);
                 sLog->outDebug(LOG_FILTER_DATABASE_AI, "SmartScript::ProcessAction: SMART_ACTION_REMOVEAURASFROMSPELL: Unit %u, spell %u",
                     (*itr)->GetGUIDLow(), e.action.removeAura.spell);
             }
@@ -1539,6 +1542,27 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         case SMART_ACTION_CALL_SCRIPT_RESET:
             OnReset();
             break;
+        case SMART_ACTION_SET_RANGED_MOVEMENT:
+        {
+            if (!IsSmart())
+                break;
+
+            float attackDistance = (float)e.action.setRangedMovement.distance;
+            float attackAngle = e.action.setRangedMovement.angle / 180.0f * M_PI;
+
+            ObjectList* targets = GetTargets(e, unit);
+            if (targets)
+            {
+                for (ObjectList::iterator itr = targets->begin(); itr != targets->end(); ++itr)
+                    if (Creature* target = (*itr)->ToCreature())
+                        if (IsSmart(target) && target->getVictim())
+                            if (CAST_AI(SmartAI, target->AI())->CanCombatMove())
+                                target->GetMotionMaster()->MoveChase(target->getVictim(), attackDistance, attackAngle);
+
+                delete targets;
+            }
+            break;
+        }
         case SMART_ACTION_CALL_TIMED_ACTIONLIST:
         {
             if (e.GetTargetType() == SMART_TARGET_NONE)
@@ -1964,6 +1988,24 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 if (!IsPlayer(*itr))
                     continue;
                 (*itr)->ToPlayer()->SaveToDB();
+            }
+            delete targets;
+            break;
+        }
+        case SMART_ACTION_CHARACTER_BIND:
+        {
+            ObjectList* targets = GetTargets(e, unit);
+            if (!targets)
+                break;
+
+            uint32 area_id = 0;
+            WorldLocation loc;
+
+            for (ObjectList::const_iterator itr = targets->begin(); itr != targets->end(); ++itr)
+            {
+                if (!IsPlayer(*itr))
+                    continue;
+                (*itr)->ToPlayer()->SetHomebind(loc, area_id);
             }
             delete targets;
             break;

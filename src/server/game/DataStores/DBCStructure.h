@@ -126,13 +126,13 @@ struct AchievementCriteriaEntry
             uint32  zoneID;                                 // 3
             uint32  questCount;                             // 4
         } complete_quests_in_zone;
-        //todo
+
         // ACHIEVEMENT_CRITERIA_TYPE_CURRENCY = 12
-        /*struct
+        struct
         {
-            uint32 currency;                                // 3
-            uint32 count;                                   // 4
-        } currencyGain;*/
+            uint32 currency;
+            uint32 count;
+        } currencyGain;
 
         // ACHIEVEMENT_CRITERIA_TYPE_COMPLETE_DAILY_QUEST   = 14
         struct
@@ -847,7 +847,7 @@ struct CurrencyTypesEntry
     //uint32 unk6;                                          // 6        archaeology-related (?)
     uint32 TotalCap;                                        // 7
     uint32 WeekCap;                                         // 8
-    //int32 unk9;                                           // 9
+    uint32 Flags;                                           // 9
     //char* description;                                    // 10
 };
 
@@ -1233,6 +1233,8 @@ struct ItemDamageEntry
 
 #define MAX_ITEM_EXT_COST_ITEMS         5
 #define MAX_ITEM_EXT_COST_CURRENCIES    5
+#define MAX_EXTENDED_COST_ITEMS         5
+#define MAX_EXTENDED_COST_CURRENCIES    5
 
 struct ItemExtendedCostEntry
 {
@@ -1535,12 +1537,12 @@ struct ScalingStatValuesEntry
     {
         if (mask & 0x4001F)
         {
-            if(mask & 0x00000001) return ssdMultiplier[1];
-            if(mask & 0x00000002) return ssdMultiplier[2]; // 0 and 1 were duplicated
-            if(mask & 0x00000004) return ssdMultiplier[3];
-            if(mask & 0x00000008) return ssdMultiplier[0];
-            if(mask & 0x00000010) return ssdMultiplier[4];
-            if(mask & 0x00040000) return ssdMultiplier[2]; // 4.0.0
+            if (mask & 0x00000001) return ssdMultiplier[1];
+            if (mask & 0x00000002) return ssdMultiplier[2]; // 0 and 1 were duplicated
+            if (mask & 0x00000004) return ssdMultiplier[3];
+            if (mask & 0x00000008) return ssdMultiplier[0];
+            if (mask & 0x00000010) return ssdMultiplier[4];
+            if (mask & 0x00040000) return ssdMultiplier[2]; // 4.0.0
         }
         return 0;
     }
@@ -1577,11 +1579,6 @@ struct ScalingStatValuesEntry
     uint32 getSpellBonus(uint32 mask) const
     {
         if (mask & 0x00008000) return spellBonus;
-        return 0;
-    }
-    uint32 getFeralBonus(uint32 mask) const
-    {
-        if (mask & 0x00010000) return 0;   // not used?
         return 0;
     }
 };

@@ -330,8 +330,8 @@ public:
 
 enum EyeOfAcherus
 {
-    DISPLAYID_EYE_HUGE          = 26320,
-    DISPLAYID_EYE_SMALL         = 25499,
+    DISPLAYID_EYE_HUGE          = 26320, // Big Blue
+    DISPLAYID_EYE_SMALL         = 25499, // Little green
 
     SPELL_EYE_PHASEMASK         = 70889,
     SPELL_EYE_VISUAL            = 51892,
@@ -340,15 +340,19 @@ enum EyeOfAcherus
     SPELL_EYE_CONTROL           = 51852,
 };
 
-enum Texts
+/*enum Texts
 {
     SAY_EYE_LAUNCHED            = 1,
     SAY_EYE_UNDER_CONTROL       = 2,
-};
+};*/
+
+#define SAY_EYE_EMOTE1  "The Eye of Acherus launches towards its destination"
+
+#define SAY_EYE_EMOTE2  "The Eye of Acherus is in your control"
 
 static Position Center[]=
 {
-    {2346.550049f, -5694.430176f, 426.029999f, 0.0f},
+    { 2361.21f, -5660.45f, 496.7444f, 0.0f },
 };
 
 class npc_eye_of_acherus : public CreatureScript
@@ -374,17 +378,19 @@ public:
         void Reset()
         {
             if (Unit* controller = me->GetCharmer())
-            me->SetLevel(controller->getLevel());
+                me->SetLevel(controller->getLevel());
 
-            me->CastSpell(me, 51890, true);
-            me->SetDisplayId(26320);
-            Talk(SAY_EYE_LAUNCHED);
-            me->SetHomePosition(2363.970589f, -5659.861328f, 504.316833f, 0);
-            me->GetMotionMaster()->MoveCharge(1752.858276f, -5878.270996f, 145.136444f, 0); //position center
-            me->SetReactState(REACT_AGGRESSIVE);
-            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_STUNNED);
+                me->CastSpell(me, SPELL_EYE_FL_BOOST_FLY, true);
+                me->SetDisplayId(DISPLAYID_EYE_HUGE);
+                // need to finish working on texts
+                //Talk(SAY_EYE_LAUNCHED);
+                me->MonsterSay(SAY_EYE_EMOTE1, LANG_UNIVERSAL, 0);
+                me->SetHomePosition(2361.21f, -5660.45f, 496.7444f, 0);
+                me->GetMotionMaster()->MoveCharge(1758.007f, -5876.785f, 166.8667f, 0); //position center
+                me->SetReactState(REACT_AGGRESSIVE);
+                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_STUNNED);
 
-            IsActive = false;
+            IsActive   = false;
             startTimer = 2000;
         }
 
@@ -394,7 +400,7 @@ public:
         void JustDied(Unit* /*killer*/)
         {
             if (Unit* charmer = me->GetCharmer())
-               charmer->RemoveAurasDueToSpell(51852);
+               charmer->RemoveAurasDueToSpell(SPELL_EYE_CONTROL);
         }
 
         void UpdateAI(const uint32 diff)
@@ -403,20 +409,20 @@ public:
             {
                 if (startTimer <=  diff && !IsActive)    // fly to start point
                 {
-                    me->CastSpell(me, 70889, true);
-                    me->CastSpell(me, 51892, true);
-                    me->CastSpell(me, 51890, true);
+                    me->CastSpell(me, SPELL_EYE_PHASEMASK, true);
+                    me->CastSpell(me, SPELL_EYE_VISUAL, true);
+                    me->CastSpell(me, SPELL_EYE_FL_BOOST_FLY, true);
 
-                    me->CastSpell(me, 51923, true);
-                    me->SetSpeed(MOVE_FLIGHT, 3.4f, true);
-                    me->GetMotionMaster()->MovePoint(0, 1711.0f, -5820.0f, 147.0f);
+                    me->CastSpell(me, SPELL_EYE_FL_BOOST_RUN, true);
+                    me->SetSpeed(MOVE_FLIGHT, 4.5f, true);
+                    me->GetMotionMaster()->MovePoint(0, 1758.0f, -5876.7f, 166.8f);
                     return;
                 }
                 else
-                startTimer -= diff;
+                    startTimer -= diff;
             }
             else
-            me->ForcedDespawn();
+                me->ForcedDespawn();
         }
 
         void MovementInform(uint32 type, uint32 pointId)
@@ -424,13 +430,15 @@ public:
             if (type != POINT_MOTION_TYPE || pointId != 0)
                return;
 
-            // I think the green morph is not blizzlike...
-            me->SetDisplayId(25499);
+            // this should never happen
+            me->SetDisplayId(DISPLAYID_EYE_SMALL);
 
-            // for some reason it does not work when this spell is casted before the waypoint movement
-            me->CastSpell(me, 51892, true);
-            me->CastSpell(me, 51890, true);
-            Talk(SAY_EYE_UNDER_CONTROL);
+            // this spell does not work if casted before the wp movement.
+            me->CastSpell(me, SPELL_EYE_VISUAL, true);
+            me->CastSpell(me, SPELL_EYE_FL_BOOST_FLY, true);
+            // need to finish working on texts
+            //Talk(SAY_EYE_UNDER_CONTROL);
+            me->MonsterSay(SAY_EYE_EMOTE2, LANG_UNIVERSAL, 0);
             ((Player*)(me->GetCharmer()))->SetClientControl(me, 1);
         }
     };

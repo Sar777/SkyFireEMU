@@ -344,10 +344,6 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
 
                 switch (m_spellInfo->Id)                     // better way to check unknown
                 {
-                    case 86150: // Guardian of Ancient Kings
-                        if (unitTarget)
-                        m_caster->CastSpell(m_caster, 86698, false, NULL);
-                    return;
                     // Positive/Negative Charge
                     case 28062:
                     case 28085:
@@ -1596,17 +1592,6 @@ void Spell::EffectDummy(SpellEffIndex effIndex)
 
             switch (m_spellInfo->Id)
             {
-               // Guardian of Ancient Kings
-                case 86150:
-                {
-                    if (m_caster->ToPlayer()->HasSpell(20473)) // Holy Shock
-                        m_caster->CastSpell(m_caster, 86669, true);
-                    if (m_caster->ToPlayer()->HasSpell(85256)) // Templar's Verdict
-                        m_caster->CastSpell(m_caster, 86698, true);
-                    if (m_caster->ToPlayer()->HasSpell(31935)) // Avenger's shield
-                        m_caster->CastSpell(m_caster, 86659, true);
-                    return;
-                }
                 case 19740: // Blessing of Might
                 {
                     if (m_caster->GetTypeId() == TYPEID_PLAYER)
@@ -3555,7 +3540,7 @@ void Spell::EffectLearnSpell(SpellEffIndex effIndex)
 }
 
 typedef std::list< std::pair<uint32, uint64> > DispelList;
-typedef std::list< std::pair<Aura* , uint8> > DispelChargesList;
+typedef std::list< std::pair<Aura*, uint8> > DispelChargesList;
 void Spell::EffectDispel(SpellEffIndex effIndex)
 {
     if (effectHandleMode != SPELL_EFFECT_HANDLE_HIT_TARGET)
@@ -3597,8 +3582,8 @@ void Spell::EffectDispel(SpellEffIndex effIndex)
             }
 
             // The charges / stack amounts don't count towards the total number of auras that can be dispelled.
-            // Ie: A dispel on a target with 5 stacks of Winters Chill and a Polymorph has 1 / (1 + 1) -> 50% chance to dispell
-            // Polymorph instead of 1 / (5 + 1) -> 16%.
+            // Ie: A dispel on a target with 5 stacks of Winters Chill and a Polymorph has 1 / (1 + 1) ->50% chance to dispell
+            // Polymorph instead of 1 / (5 + 1) ->16%.
             bool dispel_charges = aura->GetSpellInfo()->AttributesEx7 & SPELL_ATTR7_DISPEL_CHARGES;
             uint8 charges = dispel_charges ? aura->GetCharges() : aura->GetStackAmount();
             if (charges > 0)
@@ -4173,7 +4158,7 @@ void Spell::EffectTameCreature(SpellEffIndex /*effIndex*/)
     pet->SetUInt32Value(UNIT_FIELD_LEVEL, level);
 
     // caster have pet now
-    m_caster->SetMinion(pet, true , m_caster->ToPlayer()->getSlotForNewPet());
+    m_caster->SetMinion(pet, true, m_caster->ToPlayer()->getSlotForNewPet());
 
     pet->InitTalentForLevel();
 
@@ -4291,7 +4276,7 @@ void Spell::EffectLearnPetSpell(SpellEffIndex effIndex)
         return;
 
     pet->learnSpell(learn_spellproto->Id);
-    pet->SavePetToDB(PET_SLOT_ACTUAL_PET_SLOT);
+    pet->SavePetToDB(PET_SAVE_AS_CURRENT);
     pet->GetOwner()->PetSpellInitialize();
 }
 
@@ -5599,6 +5584,17 @@ void Spell::EffectScriptEffect(SpellEffIndex effIndex)
                 case 61177:                                 // Northrend Inscription Research
                 case 61288:                                 // Minor Inscription Research
                 case 61756:                                 // Northrend Inscription Research (FAST QA VERSION)
+                case 64323:                                 // Book of Glyph Mastery
+                {
+                    if (m_caster->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    // learn random explicit discovery recipe (if any)
+                    if (uint32 discoveredSpell = GetExplicitDiscoverySpell(m_spellInfo->Id, m_caster->ToPlayer()))
+                        m_caster->ToPlayer()->learnSpell(discoveredSpell, false);
+
+                    return;
+                }
                 case 62482: // Grab Crate
                 {
                     if (unitTarget)
@@ -6372,7 +6368,7 @@ void Spell::EffectDismissPet(SpellEffIndex effIndex)
     Pet* pet = unitTarget->ToPet();
 
     ExecuteLogEffectUnsummonObject(effIndex, pet);
-    pet->GetOwner()->RemovePet(pet, PET_SLOT_ACTUAL_PET_SLOT);
+    pet->GetOwner()->RemovePet(pet, PET_SAVE_AS_CURRENT);
 }
 
 void Spell::EffectSummonObject(SpellEffIndex effIndex)
@@ -6931,7 +6927,7 @@ void Spell::EffectSummonDeadPet(SpellEffIndex /*effIndex*/)
 
     // pet->AIM_Initialize();
     // _player->PetSpellInitialize();
-    pet->SavePetToDB(PET_SLOT_ACTUAL_PET_SLOT);
+    pet->SavePetToDB(PET_SAVE_AS_CURRENT);
 }
 
 void Spell::EffectDestroyAllTotems(SpellEffIndex /*effIndex*/)
@@ -7298,8 +7294,8 @@ void Spell::EffectStealBeneficialBuff(SpellEffIndex effIndex)
                 continue;
 
             // The charges / stack amounts don't count towards the total number of auras that can be dispelled.
-            // Ie: A dispel on a target with 5 stacks of Winters Chill and a Polymorph has 1 / (1 + 1) -> 50% chance to dispell
-            // Polymorph instead of 1 / (5 + 1) -> 16%.
+            // Ie: A dispel on a target with 5 stacks of Winters Chill and a Polymorph has 1 / (1 + 1) ->50% chance to dispell
+            // Polymorph instead of 1 / (5 + 1) ->16%.
             bool dispel_charges = aura->GetSpellInfo()->AttributesEx7 & SPELL_ATTR7_DISPEL_CHARGES;
             uint8 charges = dispel_charges ? aura->GetCharges() : aura->GetStackAmount();
             if (charges > 0)
@@ -7491,7 +7487,7 @@ void Spell::EffectCreateTamedPet(SpellEffIndex effIndex)
     pet->GetMap()->AddToMap(pet->ToCreature());
 
     // unitTarget has pet now
-    unitTarget->SetMinion(pet, true, PET_SLOT_ACTUAL_PET_SLOT);
+    unitTarget->SetMinion(pet, true, PET_SAVE_AS_CURRENT);
 
     pet->InitTalentForLevel();
 

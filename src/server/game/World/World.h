@@ -223,6 +223,10 @@ enum WorldIntConfigs
     CONFIG_START_PLAYER_MONEY,
     CONFIG_MAX_HONOR_POINTS,
     CONFIG_START_HONOR_POINTS,
+    CONFIG_MAX_CONQUEST_POINTS,
+    CONFIG_START_CONQUEST_POINTS,
+    CONFIG_MAX_JUSTICE_POINTS,
+    CONFIG_START_JUSTICE_POINTS,
     CONFIG_MAX_ARENA_POINTS,
     CONFIG_START_ARENA_POINTS,
     CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL,
@@ -290,6 +294,7 @@ enum WorldIntConfigs
     CONFIG_ARENA_START_RATING,
     CONFIG_ARENA_START_PERSONAL_RATING,
     CONFIG_ARENA_START_MATCHMAKER_RATING,
+    CONFIG_ARENA_CONQUEST_POINTS_REWARD,
     CONFIG_MAX_WHO,
     CONFIG_HONOR_AFTER_DUEL,
     CONFIG_PVP_TOKEN_MAP_TYPE,
@@ -394,6 +399,7 @@ enum Rates
     RATE_AUCTION_DEPOSIT,
     RATE_AUCTION_CUT,
     RATE_HONOR,
+    RATE_CONQUEST_POINTS_WEEK_LIMIT,
     RATE_MINING_AMOUNT,
     RATE_MINING_NEXT,
     RATE_TALENT,
@@ -645,6 +651,7 @@ class World
         time_t GetNextDailyQuestsResetTime() const { return m_NextDailyQuestReset; }
         time_t GetNextWeeklyQuestsResetTime() const { return m_NextWeeklyQuestReset; }
         time_t GetNextRandomBGResetTime() const { return m_NextRandomBGReset; }
+        time_t GetNextCurrencyResetTime() const { return m_NextCurrencyReset; }
 
         /// Get the maximum skill level a player can reach
         uint16 GetConfigMaxSkillValue() const
@@ -787,10 +794,10 @@ class World
         void InitDailyQuestResetTime();
         void InitWeeklyQuestResetTime();
         void InitRandomBGResetTime();
-
+        void InitCurrencyResetTime();
         void ResetDailyQuests();
         void ResetWeeklyQuests();
-
+        void ResetCurrencyWeekCap();
         void ResetRandomBG();
     private:
         static ACE_Atomic_Op<ACE_Thread_Mutex, bool> m_stopEvent;
@@ -851,6 +858,7 @@ class World
         // next daily quests and random bg reset time
         time_t m_NextDailyQuestReset;
         time_t m_NextWeeklyQuestReset;
+        time_t m_NextCurrencyReset;
         time_t m_NextRandomBGReset;
         time_t m_NextDailyXPReset;
         time_t m_NextHourlyXPReset;

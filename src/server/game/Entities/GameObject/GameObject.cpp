@@ -213,6 +213,9 @@ bool GameObject::Create(uint32 guidlow, uint32 name_id, Map* map, uint32 phaseMa
             m_goValue->Building.Health = goinfo->building.intactNumHits + goinfo->building.damagedNumHits;
             m_goValue->Building.MaxHealth = goinfo->building.intactNumHits + goinfo->building.damagedNumHits;
             SetGoAnimProgress(255);
+
+            SetUInt32Value(GAMEOBJECT_PARENTROTATION, goinfo->building.destructibleData);
+            SetUInt32Value(GAMEOBJECT_DISPLAYID, goinfo->building.destructibleData);
             break;
         case GAMEOBJECT_TYPE_TRANSPORT:
             SetUInt32Value(GAMEOBJECT_LEVEL, goinfo->transport.pause);
@@ -1661,8 +1664,8 @@ void GameObject::CastSpell(Unit* target, uint32 spellId)
     else
     {
         trigger->setFaction(14);
-        // Set owner guid for target if no owner avalible - needed by trigger auras
-        // - trigger gets despawned and there's no caster avalible (see AuraEffect::TriggerSpell())
+        // Set owner guid for target if no owner available - needed by trigger auras
+        // - trigger gets despawned and there's no caster available (see AuraEffect::TriggerSpell())
         trigger->CastSpell(target ? target : trigger, spellInfo, true, 0, 0, target ? target->GetGUID() : 0);
     }
 }

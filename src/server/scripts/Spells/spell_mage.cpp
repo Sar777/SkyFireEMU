@@ -36,7 +36,8 @@ enum MageSpells
     SPELL_MAGE_GLYPH_OF_ETERNAL_WATER            = 70937,
     SPELL_MAGE_SUMMON_WATER_ELEMENTAL_PERMANENT  = 70908,
     SPELL_MAGE_SUMMON_WATER_ELEMENTAL_TEMPORARY  = 70907,
-    SPELL_MAGE_GLYPH_OF_BLAST_WAVE               = 62126,
+    SPELL_MAGE_FLAMESTRIKE                       = 2120,
+    SPELL_MAGE_BLASTWAVE                         = 11113,
     SPELL_MAGE_GLYPH_OF_ICE_BARRIER              = 63095,
 };
 
@@ -49,22 +50,51 @@ public:
     {
         PrepareSpellScript(spell_mage_blast_wave_SpellScript);
 
+        std::list<Unit*> targetList;
+        uint32 count;
+        float x;
+        float y;
+        float z;
+
         bool Validate(SpellInfo const* /*spellEntry*/)
         {
-            if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_GLYPH_OF_BLAST_WAVE))
+            if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_FLAMESTRIKE) ||
+                !sSpellMgr->GetSpellInfo(SPELL_MAGE_BLASTWAVE))
                 return false;
             return true;
         }
-
-        void HandleKnockBack(SpellEffIndex effIndex)
+        bool Load()
         {
-            if (GetCaster()->HasAura(SPELL_MAGE_GLYPH_OF_BLAST_WAVE))
-                PreventHitDefaultEffect(effIndex);
+            if (GetCaster()->GetTypeId() != TYPEID_PLAYER)
+                return false;
+
+            x = GetExplTargetDest()->GetPositionX();
+            y = GetExplTargetDest()->GetPositionY();
+            z = GetExplTargetDest()->GetPositionZ();
+            count = 0;
+            targetList.clear();
+            return true;
+        }
+
+        void FilterTargets(std::list<Unit*>& unitList)
+        {
+            count = unitList.size();
+        }
+
+        void HandleExtraEffect()
+        {
+            Unit* caster = GetCaster();
+            if (AuraEffect const* impFlamestrike = caster->GetDummyAuraEffect(SPELLFAMILY_MAGE, 37, EFFECT_0))
+            {
+                if (count >= 2 && roll_chance_i(impFlamestrike->GetAmount()))
+                    caster->CastSpell(x, y, z, SPELL_MAGE_FLAMESTRIKE, true);
+            }
         }
 
         void Register()
         {
-            OnEffectHitTarget += SpellEffectFn(spell_mage_blast_wave_SpellScript::HandleKnockBack, EFFECT_2, SPELL_EFFECT_KNOCK_BACK);
+            AfterCast += SpellCastFn(spell_mage_blast_wave_SpellScript::HandleExtraEffect);
+            OnUnitTargetSelect += SpellUnitTargetFn(spell_mage_blast_wave_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_DEST_AREA_ENEMY);
         }
     };
 
@@ -117,62 +147,6 @@ public:
     {
         return new spell_mage_cold_snap_SpellScript();
     }
-};
-
-enum SilvermoonPolymorph
-{
-    NPC_AUROSALIA   = 18744,
-};
-
-// TODO: move out of here and rename - not a mage spell
-class spell_mage_polymorph_cast_visual : public SpellScriptLoader
-{
-public:
-    spell_mage_polymorph_cast_visual() : SpellScriptLoader("spell_mage_polymorph_visual") { }
-
-    class spell_mage_polymorph_cast_visual_SpellScript : public SpellScript
-    {
-        PrepareSpellScript(spell_mage_polymorph_cast_visual_SpellScript);
-
-        static const uint32 PolymorhForms[6];
-
-        bool Validate(SpellInfo const* /*spellEntry*/)
-        {
-            // check if spell ids exist in dbc
-            for (uint32 i = 0; i < 6; i++)
-                if (!sSpellMgr->GetSpellInfo(PolymorhForms[i]))
-                    return false;
-            return true;
-        }
-
-        void HandleDummy(SpellEffIndex /*effIndex*/)
-        {
-            if (Unit* target = GetCaster()->FindNearestCreature(NPC_AUROSALIA, 30.0f))
-                if (target->GetTypeId() == TYPEID_UNIT)
-                    target->CastSpell(target, PolymorhForms[urand(0, 5)], true);
-        }
-
-        void Register()
-        {
-            // add dummy effect spell handler to Polymorph visual
-            OnEffectHitTarget += SpellEffectFn(spell_mage_polymorph_cast_visual_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
-        }
-    };
-
-    SpellScript* GetSpellScript() const
-    {
-        return new spell_mage_polymorph_cast_visual_SpellScript();
-    }
-};
-
-const uint32 spell_mage_polymorph_cast_visual::spell_mage_polymorph_cast_visual_SpellScript::PolymorhForms[6] =
-{
-    SPELL_MAGE_SQUIRREL_FORM,
-    SPELL_MAGE_GIRAFFE_FORM,
-    SPELL_MAGE_SERPENT_FORM,
-    SPELL_MAGE_DRAGONHAWK_FORM,
-    SPELL_MAGE_WORGEN_FORM,
-    SPELL_MAGE_SHEEP_FORM
 };
 
 class spell_mage_summon_water_elemental : public SpellScriptLoader
@@ -451,7 +425,6 @@ void AddSC_mage_spell_scripts()
     new spell_mage_frost_warding_trigger();
     new spell_mage_incanters_absorbtion_absorb();
     new spell_mage_incanters_absorbtion_manashield();
-    new spell_mage_polymorph_cast_visual;
     new spell_mage_summon_water_elemental;
     new spell_mage_ice_barrier;
 }

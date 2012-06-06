@@ -180,7 +180,7 @@ void World::SetClosed(bool val)
 {
     m_isClosed = val;
 
-    // Invert the value, for simplicity for scripters.
+    // Invert the value, for simplicity for scripter's.
     sScriptMgr->OnOpenStateChange(!val);
 }
 
@@ -240,7 +240,7 @@ World::AddSession_(WorldSession* s)
     if (!RemoveSession (s->GetAccountId()))
     {
         s->KickPlayer();
-        delete s;                                           // session not added yet in session list, so not listed in queue
+        delete s;      // session not added yet in session list, so not listed in queue
         return;
     }
 
@@ -266,10 +266,10 @@ World::AddSession_(WorldSession* s)
 
     uint32 Sessions = GetActiveAndQueuedSessionCount();
     uint32 pLimit = GetPlayerAmountLimit();
-    uint32 QueueSize = GetQueuedSessionCount();             //number of players in the queue
+    uint32 QueueSize = GetQueuedSessionCount();  // number of players in the queue
 
-    //so we don't count the user trying to
-    //login as a session and queue the socket that we are using
+    // so we don't count the user trying to
+    // login as a session and queue the socket that we are using
     if (decrease_session)
         --Sessions;
 
@@ -294,7 +294,7 @@ World::AddSession_(WorldSession* s)
     // Updates the population
     if (pLimit > 0)
     {
-        float popu = (float)GetActiveSessionCount();              // updated number of users on the server
+        float popu = (float)GetActiveSessionCount();  // updated number of users on the server
         popu /= pLimit;
         popu *= 2;
         sLog->outDetail ("Server Population (%f).", popu);
@@ -507,6 +507,12 @@ void World::LoadConfigSettings(bool reload)
     rate_values[RATE_AUCTION_DEPOSIT] = ConfigMgr::GetFloatDefault("Rate.Auction.Deposit", 1.0f);
     rate_values[RATE_AUCTION_CUT] = ConfigMgr::GetFloatDefault("Rate.Auction.Cut", 1.0f);
     rate_values[RATE_HONOR] = ConfigMgr::GetFloatDefault("Rate.Honor", 1.0f);
+    rate_values[RATE_CONQUEST_POINTS_WEEK_LIMIT] = ConfigMgr::GetFloatDefault("Rate.ConquestPointsWeekLimit", 1.0f);
+    if (rate_values[RATE_CONQUEST_POINTS_WEEK_LIMIT] <= 0 || rate_values[RATE_CONQUEST_POINTS_WEEK_LIMIT] > 100)
+    {
+        sLog->outError("Rate.ConquestPointsWeekLimit (%f) must be between 0 and 100. Using 1 instead.", rate_values[RATE_CONQUEST_POINTS_WEEK_LIMIT]);
+        rate_values[RATE_CONQUEST_POINTS_WEEK_LIMIT] = 1.0f;
+    }
     rate_values[RATE_MINING_AMOUNT] = ConfigMgr::GetFloatDefault("Rate.Mining.Amount", 1.0f);
     rate_values[RATE_MINING_NEXT]   = ConfigMgr::GetFloatDefault("Rate.Mining.Next", 1.0f);
     rate_values[RATE_INSTANCE_RESET_TIME] = ConfigMgr::GetFloatDefault("Rate.InstanceResetTime", 1.0f);
@@ -815,6 +821,48 @@ void World::LoadConfigSettings(bool reload)
         m_int_configs[CONFIG_START_HONOR_POINTS] = m_int_configs[CONFIG_MAX_HONOR_POINTS];
     }
 
+    m_int_configs[CONFIG_MAX_JUSTICE_POINTS] = ConfigMgr::GetIntDefault("MaxJusticePoints", 4000);
+    if (int32(m_int_configs[CONFIG_MAX_JUSTICE_POINTS]) < 0)
+    {
+        sLog->outError("MaxJusticePoints (%i) can't be negative. Set to 0.", m_int_configs[CONFIG_MAX_JUSTICE_POINTS]);
+        m_int_configs[CONFIG_MAX_JUSTICE_POINTS] = 0;
+    }
+
+    m_int_configs[CONFIG_START_JUSTICE_POINTS] = ConfigMgr::GetIntDefault("StartJusticePoints", 0);
+    if (int32(m_int_configs[CONFIG_START_JUSTICE_POINTS]) < 0)
+    {
+        sLog->outError("StartJusticePoints (%i) must be in range 0..MaxJusticePoints(%u). Set to %u.",
+            m_int_configs[CONFIG_START_JUSTICE_POINTS], m_int_configs[CONFIG_MAX_JUSTICE_POINTS], 0);
+        m_int_configs[CONFIG_START_JUSTICE_POINTS] = 0;
+    }
+    else if (m_int_configs[CONFIG_START_JUSTICE_POINTS] > m_int_configs[CONFIG_MAX_JUSTICE_POINTS])
+    {
+        sLog->outError("StartJusticePoints (%i) must be in range 0..MaxJusticePoints(%u). Set to %u.",
+            m_int_configs[CONFIG_START_JUSTICE_POINTS], m_int_configs[CONFIG_MAX_JUSTICE_POINTS], m_int_configs[CONFIG_MAX_JUSTICE_POINTS]);
+        m_int_configs[CONFIG_START_JUSTICE_POINTS] = m_int_configs[CONFIG_MAX_JUSTICE_POINTS];
+    }
+
+    m_int_configs[CONFIG_MAX_CONQUEST_POINTS] = ConfigMgr::GetIntDefault("MaxConquestPoints", 4000);
+    if (int32(m_int_configs[CONFIG_MAX_CONQUEST_POINTS]) < 0)
+    {
+        sLog->outError("MaxConquestPoints (%i) can't be negative. Set to 0.", m_int_configs[CONFIG_MAX_CONQUEST_POINTS]);
+        m_int_configs[CONFIG_MAX_CONQUEST_POINTS] = 0;
+    }
+
+    m_int_configs[CONFIG_START_CONQUEST_POINTS] = ConfigMgr::GetIntDefault("StartConquestPoints", 0);
+    if (int32(m_int_configs[CONFIG_START_CONQUEST_POINTS]) < 0)
+    {
+        sLog->outError("StartConquestPoints (%i) must be in range 0..MaxConquestPoints(%u). Set to %u.",
+            m_int_configs[CONFIG_START_CONQUEST_POINTS], m_int_configs[CONFIG_MAX_CONQUEST_POINTS], 0);
+        m_int_configs[CONFIG_START_CONQUEST_POINTS] = 0;
+    }
+    else if (m_int_configs[CONFIG_START_CONQUEST_POINTS] > m_int_configs[CONFIG_MAX_CONQUEST_POINTS])
+    {
+        sLog->outError("StartConquestPoints (%i) must be in range 0..MaxConquestPoints(%u). Set to %u.",
+            m_int_configs[CONFIG_START_CONQUEST_POINTS], m_int_configs[CONFIG_MAX_CONQUEST_POINTS], m_int_configs[CONFIG_MAX_CONQUEST_POINTS]);
+        m_int_configs[CONFIG_START_CONQUEST_POINTS] = m_int_configs[CONFIG_MAX_CONQUEST_POINTS];
+    }
+
     m_int_configs[CONFIG_MAX_ARENA_POINTS] = ConfigMgr::GetIntDefault("MaxArenaPoints", 10000);
     if (int32(m_int_configs[CONFIG_MAX_ARENA_POINTS]) < 0)
     {
@@ -1058,6 +1106,7 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_ARENA_SEASON_ID]                            = ConfigMgr::GetIntDefault ("Arena.ArenaSeason.ID", 1);
     m_int_configs[CONFIG_ARENA_START_RATING]                         = ConfigMgr::GetIntDefault ("Arena.ArenaStartRating", 0);
     m_int_configs[CONFIG_ARENA_START_PERSONAL_RATING]                = ConfigMgr::GetIntDefault ("Arena.ArenaStartPersonalRating", 1000);
+    m_int_configs[CONFIG_ARENA_CONQUEST_POINTS_REWARD]               = ConfigMgr::GetIntDefault ("Arena.ConquestPointsReward", 135);
     m_int_configs[CONFIG_ARENA_START_MATCHMAKER_RATING]              = ConfigMgr::GetIntDefault ("Arena.ArenaStartMatchmakerRating", 1500);
     m_bool_configs[CONFIG_ARENA_SEASON_IN_PROGRESS]                  = ConfigMgr::GetBoolDefault("Arena.ArenaSeason.InProgress", true);
     m_bool_configs[CONFIG_ARENA_LOG_EXTENDED_INFO]                   = ConfigMgr::GetBoolDefault("ArenaLog.ExtendedInfo", false);
@@ -1602,8 +1651,8 @@ void World::SetInitialWorldSettings()
     sAuctionMgr->LoadAuctions();
 
     sLog->outString("Loading Guilds...");
-    sGuildMgr->LoadGuilds(); 
-    
+    sGuildMgr->LoadGuilds();
+
     sLog->outString("Loading Guild Rewards...");
     sGuildMgr->LoadGuildRewards();
 
@@ -1821,6 +1870,10 @@ void World::SetInitialWorldSettings()
     sLog->outString("Calculate random battleground reset time..." );
     InitRandomBGResetTime();
 
+    sLog->outString("Calculate weekly currency cap reset time..." );
+    InitCurrencyResetTime();
+
+    ///- Initialize CharacterName Data
     LoadCharacterNameData();
 
     // possibly enable db logging; avoid massive startup spam by doing it here.
@@ -2570,10 +2623,10 @@ void World::ShutdownMsg(bool show, Player* player)
     ///- Display a message every 12 hours, hours, 5 minutes, minute, 5 seconds and finally seconds
     if (show ||
         (m_ShutdownTimer < 5* MINUTE && (m_ShutdownTimer % 15) == 0) || // < 5 min; every 15 sec
-        (m_ShutdownTimer < 15 * MINUTE && (m_ShutdownTimer % MINUTE) == 0) || // < 15 min ; every 1 min
-        (m_ShutdownTimer < 30 * MINUTE && (m_ShutdownTimer % (5 * MINUTE)) == 0) || // < 30 min ; every 5 min
-        (m_ShutdownTimer < 12 * HOUR && (m_ShutdownTimer % HOUR) == 0) || // < 12 h ; every 1 h
-        (m_ShutdownTimer > 12 * HOUR && (m_ShutdownTimer % (12 * HOUR)) == 0)) // > 12 h ; every 12 h
+        (m_ShutdownTimer < 15 * MINUTE && (m_ShutdownTimer % MINUTE) == 0) || // < 15 min; every 1 min
+        (m_ShutdownTimer < 30 * MINUTE && (m_ShutdownTimer % (5 * MINUTE)) == 0) || // < 30 min; every 5 min
+        (m_ShutdownTimer < 12 * HOUR && (m_ShutdownTimer % HOUR) == 0) || // < 12 h; every 1 h
+        (m_ShutdownTimer > 12 * HOUR && (m_ShutdownTimer % (12 * HOUR)) == 0)) // > 12 h; every 12 h
     {
         std::string str = secsToTimeString(m_ShutdownTimer);
 
@@ -2794,6 +2847,13 @@ void World::InitRandomBGResetTime()
         sWorld->setWorldState(WS_BG_DAILY_RESET_TIME, uint64(m_NextRandomBGReset));
 }
 
+void World::InitCurrencyResetTime()
+{
+    time_t wsTime = getWorldState(WS_CURRENCY_RESET_TIME);
+    time_t curTime = time(NULL);
+    m_NextCurrencyReset = wsTime < curTime ? curTime : wsTime;
+}
+
 void World::ResetDailyQuests()
 {
     sLog->outDetail("Daily quests reset for all characters.");
@@ -2865,6 +2925,18 @@ void World::ResetRandomBG()
 
     m_NextRandomBGReset = time_t(m_NextRandomBGReset + DAY);
     sWorld->setWorldState(WS_BG_DAILY_RESET_TIME, uint64(m_NextRandomBGReset));
+}
+
+void World::ResetCurrencyWeekCap()
+{
+    sLog->outDetail("Weekly Currency caps has benn reset for all realm characters.");
+    CharacterDatabase.Execute("UPDATE character_currency SET thisweek = 0");
+    for (SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+        if (itr->second->GetPlayer())
+            itr->second->GetPlayer()->ResetCurrencyWeekCap();
+
+    m_NextCurrencyReset = time_t(m_NextCurrencyReset + WEEK);
+    sWorld->setWorldState(WS_CURRENCY_RESET_TIME, uint64(m_NextCurrencyReset));
 }
 
 void World::UpdateMaxSessionCounters()
@@ -2991,7 +3063,7 @@ void World::ProcessQueryCallbacks()
 
 void World::LoadCharacterNameData()
 {
-    sLog->outString("Loading character name data");
+    sLog->outString("Loading character name data...");
 
     QueryResult result = CharacterDatabase.Query("SELECT guid, name, race, gender, class FROM characters");
     if (!result)

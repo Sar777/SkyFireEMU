@@ -198,7 +198,8 @@ enum ItemFlagsExtra
     ITEM_FLAGS_EXTRA_ALLIANCE_ONLY           = 0x00000002,
     ITEM_FLAGS_EXTRA_EXT_COST_REQUIRES_GOLD  = 0x00000004, // when item uses extended cost, gold is also required
     ITEM_FLAGS_EXTRA_NEED_ROLL_DISABLED      = 0x00000100,
-    ITEM_FLAGS_EXTRA_CASTER_WEAPON           = 0x00000200 // uses caster specific dbc file for DPS calculations
+    ITEM_FLAGS_EXTRA_CASTER_WEAPON           = 0x00000200, // uses caster specific dbc file for DPS calculations
+    ITEM_FLAGS_EXTRA_BNET_ACCOUNT_BOUND      = 0x00020000
 };
 
 enum BAG_FAMILY_MASK
@@ -551,13 +552,6 @@ inline uint8 ItemSubClassToDurabilityMultiplierId(uint32 ItemClass, uint32 ItemS
 #pragma pack(push, 1)
 #endif
 
-struct _Damage
-{
-    float   DamageMin;
-    float   DamageMax;
-    uint32  DamageType;                                     // id from Resistances.dbc
-};
-
 struct _ItemStat
 {
     uint32  ItemStatType;
@@ -652,6 +646,8 @@ struct ItemTemplate
     // extra fields
     float  DPS;
     uint32 Armor;
+    float  minDamage;
+    float  maxDamage;
 
     // helpers
     bool CanChangeEquipStateInCombat() const
@@ -705,8 +701,6 @@ struct ItemTemplate
     // Remove this.
     uint32 GetArmor() const;
     ItemDamageEntry const* FindItemDamageEntry() const;
-    float GetMinDamage() const { return floor(DPS * float(Delay) / 1000.0f * 0.8f + 0.5f); }
-    float GetMaxDamage() const { return floor(DPS * float(Delay) / 1000.0f * 1.2f + 0.5f); }
 
     bool IsPotion() const { return Class == ITEM_CLASS_CONSUMABLE && SubClass == ITEM_SUBCLASS_POTION; }
     bool IsArmorVellum() const { return Class == ITEM_CLASS_TRADE_GOODS && SubClass == ITEM_SUBCLASS_ARMOR_ENCHANTMENT; }

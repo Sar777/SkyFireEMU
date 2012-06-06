@@ -144,23 +144,23 @@ void BattlegroundTP::Update(uint32 diff)
             m_FlagSpellForceTimer += diff;
             if (m_FlagDebuffState == 0 && m_FlagSpellForceTimer >= 600000)  // 10 minutes
             {
-                if (Player * player = ObjectAccessor::FindPlayer(m_FlagKeepers[0]))
+                if (Player * player = ObjectAccessor::FindPlayer(_flagKeepers[0]))
                     player->CastSpell(player, TP_SPELL_FOCUSED_ASSAULT, true);
 
-                if (Player * player = ObjectAccessor::FindPlayer(m_FlagKeepers[1]))
+                if (Player * player = ObjectAccessor::FindPlayer(_flagKeepers[1]))
                     player->CastSpell(player, TP_SPELL_FOCUSED_ASSAULT, true);
 
                 m_FlagDebuffState = 1;
             }
             else if (m_FlagDebuffState == 1 && m_FlagSpellForceTimer >= 900000) // 15 minutes
             {
-                if (Player * player = ObjectAccessor::FindPlayer(m_FlagKeepers[0]))
+                if (Player * player = ObjectAccessor::FindPlayer(_flagKeepers[0]))
                 {
                     player->RemoveAurasDueToSpell(TP_SPELL_FOCUSED_ASSAULT);
                     player->CastSpell(player, TP_SPELL_BRUTAL_ASSAULT, true);
                 }
 
-                if (Player * player = ObjectAccessor::FindPlayer(m_FlagKeepers[1]))
+                if (Player * player = ObjectAccessor::FindPlayer(_flagKeepers[1]))
                 {
                     player->RemoveAurasDueToSpell(TP_SPELL_FOCUSED_ASSAULT);
                     player->CastSpell(player, TP_SPELL_BRUTAL_ASSAULT, true);
@@ -193,11 +193,14 @@ void BattlegroundTP::StartingEventCloseDoors()
 
 void BattlegroundTP::StartingEventOpenDoors()
 {
-    for (uint32 i = BG_TP_OBJECT_DOOR_A_1; i <= BG_TP_OBJECT_DOOR_H_4; ++i)
-    {
-        DoorOpen(i);
-        SpawnBGObject(i, RESPAWN_ONE_DAY);
-    }
+    DoorOpen(BG_TP_OBJECT_DOOR_A_1);
+    DoorOpen(BG_TP_OBJECT_DOOR_A_2);
+    DoorOpen(BG_TP_OBJECT_DOOR_A_3);
+    DoorOpen(BG_TP_OBJECT_DOOR_A_4);
+    DoorOpen(BG_TP_OBJECT_DOOR_H_1);
+    DoorOpen(BG_TP_OBJECT_DOOR_H_2);
+    DoorOpen(BG_TP_OBJECT_DOOR_H_3);
+    DoorOpen(BG_TP_OBJECT_DOOR_H_4);
 
     for (uint32 i = BG_TP_OBJECT_A_FLAG; i <= BG_TP_OBJECT_BERSERKBUFF_2; ++i)
         SpawnBGObject(i, RESPAWN_IMMEDIATELY);
@@ -608,7 +611,7 @@ void BattlegroundTP::EventPlayerClickedOnFlag(Player *Source, GameObject* target
 void BattlegroundTP::RemovePlayer(Player *player, uint64 guid)
 {
     // sometimes flag auras are not removed :(
-    if (IsAllianceFlagPickedup() && m_FlagKeepers[BG_TEAM_ALLIANCE] == guid)
+    if (IsAllianceFlagPickedup() && _flagKeepers[BG_TEAM_ALLIANCE] == guid)
     {
         if (!player)
         {
@@ -619,7 +622,7 @@ void BattlegroundTP::RemovePlayer(Player *player, uint64 guid)
         else
             this->EventPlayerDroppedFlag(player);
     }
-    if (IsHordeFlagPickedup() && m_FlagKeepers[BG_TEAM_HORDE] == guid)
+    if (IsHordeFlagPickedup() && _flagKeepers[BG_TEAM_HORDE] == guid)
     {
         if (!player)
         {
@@ -702,15 +705,15 @@ bool BattlegroundTP::SetupBattleground()
         || !AddObject(BG_TP_OBJECT_BERSERKBUFF_1, BG_OBJECTID_BERSERKERBUFF_ENTRY, 1934.369f, 226.064f, -17.0441f, 2.499154f, 0, 0, 0.5591929f, 0.8290376f, BUFF_RESPAWN_TIME)
         || !AddObject(BG_TP_OBJECT_BERSERKBUFF_2, BG_OBJECTID_BERSERKERBUFF_ENTRY, 1725.240f, 446.431f, -7.8327f, 5.709677f, 0, 0, 0.9396926f, -0.3420201f, BUFF_RESPAWN_TIME)
         // alliance gates
-        || !AddObject(BG_TP_OBJECT_DOOR_A_1, BG_OBJECT_DOOR_A_1_TP_ENTRY, 2115.399f, 150.175f, 43.526f, 2.62f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
-        || !AddObject(BG_TP_OBJECT_DOOR_A_2, BG_OBJECT_DOOR_A_2_TP_ENTRY, 2156.803f, 220.331f, 43.482f, 5.76f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
-        || !AddObject(BG_TP_OBJECT_DOOR_A_3, BG_OBJECT_DOOR_A_3_TP_ENTRY, 2126.760f, 224.051f, 43.647f, 2.63f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
-        || !AddObject(BG_TP_OBJECT_DOOR_A_4, BG_OBJECT_DOOR_A_4_TP_ENTRY, 2093.358f, 168.633f, 54.279f, 2.67f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
+        || !AddObject(BG_TP_OBJECT_DOOR_A_1, BG_OBJECT_DOOR_A_1_TP_ENTRY, 2115.399f, 150.175f, 43.526f, 2.544690f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
+        || !AddObject(BG_TP_OBJECT_DOOR_A_2, BG_OBJECT_DOOR_A_2_TP_ENTRY, 2156.803f, 220.331f, 43.482f, 2.544690f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
+        || !AddObject(BG_TP_OBJECT_DOOR_A_3, BG_OBJECT_DOOR_A_3_TP_ENTRY, 2127.512f, 223.711f, 43.640f, 2.544690f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
+        || !AddObject(BG_TP_OBJECT_DOOR_A_4, BG_OBJECT_DOOR_A_4_TP_ENTRY, 2096.102f, 166.920f, 54.230f, 2.544690f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
         // horde gates
-        || !AddObject(BG_TP_OBJECT_DOOR_H_1, BG_OBJECT_DOOR_H_1_TP_ENTRY, 1556.595f, 314.502f, 1.2230f, 3.04f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
-        || !AddObject(BG_TP_OBJECT_DOOR_H_2, BG_OBJECT_DOOR_H_2_TP_ENTRY, 1587.415f, 319.935f, 1.5220f, 6.20f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
-        || !AddObject(BG_TP_OBJECT_DOOR_H_3, BG_OBJECT_DOOR_H_3_TP_ENTRY, 1591.463f, 365.732f, 13.494f, 6.20f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
-        || !AddObject(BG_TP_OBJECT_DOOR_H_4, BG_OBJECT_DOOR_H_4_TP_ENTRY, 1558.315f, 372.709f, 1.4840f, 6.12f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
+        || !AddObject(BG_TP_OBJECT_DOOR_H_1, BG_OBJECT_DOOR_H_1_TP_ENTRY, 1556.595f, 314.502f, 1.2230f, 6.179126f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
+        || !AddObject(BG_TP_OBJECT_DOOR_H_2, BG_OBJECT_DOOR_H_2_TP_ENTRY, 1587.093f, 319.853f, 1.5233f, 6.179126f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
+        || !AddObject(BG_TP_OBJECT_DOOR_H_3, BG_OBJECT_DOOR_H_3_TP_ENTRY, 1591.463f, 365.732f, 13.494f, 6.179126f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
+        || !AddObject(BG_TP_OBJECT_DOOR_H_4, BG_OBJECT_DOOR_H_4_TP_ENTRY, 1558.315f, 372.709f, 1.4840f, 6.179126f, 0, 0, 0, 0, RESPAWN_IMMEDIATELY)
        )
     {
         sLog->outErrorDb("BatteGroundTP: Failed to spawn some objects Battleground not created!");
@@ -755,8 +758,8 @@ void BattlegroundTP::Reset()
     // call parent's class reset
     Battleground::Reset();
 
-    m_FlagKeepers[BG_TEAM_ALLIANCE]     = 0;
-    m_FlagKeepers[BG_TEAM_HORDE]        = 0;
+    _flagKeepers[BG_TEAM_ALLIANCE]     = 0;
+    _flagKeepers[BG_TEAM_HORDE]        = 0;
     m_DroppedFlagGUID[BG_TEAM_ALLIANCE] = 0;
     m_DroppedFlagGUID[BG_TEAM_HORDE]    = 0;
     m_FlagState[BG_TEAM_ALLIANCE]       = BG_TP_FLAG_STATE_ON_BASE;
