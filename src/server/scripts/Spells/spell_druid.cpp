@@ -27,8 +27,10 @@
 
 enum DruidSpells
 {
-    DRUID_INCREASED_MOONFIRE_DURATION   = 38414,
-    DRUID_NATURES_SPLENDOR              = 57865
+    DRUID_INCREASED_MOONFIRE_DURATION   = 38414, // Tier 6
+    DRUID_GENESIS_R1                    = 57810,
+    DRUID_GENESIS_R2                    = 57811,
+    DRUID_GENESIS_R3                    = 57812,
 };
 
 // 54846 Glyph of Starfire
@@ -43,9 +45,8 @@ class spell_dru_glyph_of_starfire : public SpellScriptLoader
 
             bool Validate(SpellInfo const* /*spellEntry*/)
             {
-                if (!sSpellMgr->GetSpellInfo(DRUID_INCREASED_MOONFIRE_DURATION))
-                    return false;
-                if (!sSpellMgr->GetSpellInfo(DRUID_NATURES_SPLENDOR))
+                if (!sSpellMgr->GetSpellInfo(DRUID_INCREASED_MOONFIRE_DURATION) ||
+                    !sSpellMgr->GetSpellInfo(DRUID_GENESIS_R1))
                     return false;
                 return true;
             }
@@ -60,10 +61,18 @@ class spell_dru_glyph_of_starfire : public SpellScriptLoader
 
                         uint32 countMin = aura->GetMaxDuration();
                         uint32 countMax = aura->GetSpellInfo()->GetMaxDuration() + 9000;
+
                         if (caster->HasAura(DRUID_INCREASED_MOONFIRE_DURATION))
                             countMax += 3000;
-                        if (caster->HasAura(DRUID_NATURES_SPLENDOR))
-                            countMax += 3000;
+
+                        if (caster->HasAura(DRUID_GENESIS_R1))
+                            countMax += 2000;
+
+                        if (caster->HasAura(DRUID_GENESIS_R2))
+                            countMax += 4000;
+
+                        if (caster->HasAura(DRUID_GENESIS_R3))
+                            countMax += 6000;
 
                         if (countMin < countMax)
                         {
@@ -198,7 +207,7 @@ class spell_dru_starfall_aoe : public SpellScriptLoader
 
             void Register()
             {
-                OnUnitTargetSelect += SpellUnitTargetFn(spell_dru_starfall_aoe_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_DEST_AREA_ENEMY);
+                OnUnitTargetSelect += SpellUnitTargetFn(spell_dru_starfall_aoe_SpellScript::FilterTargets, EFFECT_0, TARGET_UNIT_SRC_AREA_ENEMY);
             }
         };
 
@@ -329,35 +338,6 @@ public:
     }
 };
 
-// Berserk
-// Spellid: 50334
-class spell_dru_berserk : public SpellScriptLoader
-{
-   public:
-       spell_dru_berserk() : SpellScriptLoader("spell_dru_berserk") {}
-
-       class spell_dru_berserk_AuraScript : public AuraScript
-       {
-           PrepareAuraScript(spell_dru_berserk_AuraScript);
-           void HandleEffectApply(AuraEffect const * /*aurEff*/, AuraEffectHandleModes /*mode*/)
-           {
-               if (Unit* target = GetTarget())
-                   if (target->GetTypeId() == TYPEID_PLAYER)
-                       target->ToPlayer()->RemoveSpellCategoryCooldown(971, true);
-           }
-
-           void Register()
-           {
-               OnEffectApply += AuraEffectApplyFn(spell_dru_berserk_AuraScript::HandleEffectApply, EFFECT_2, SPELL_AURA_MECHANIC_IMMUNITY, AURA_EFFECT_HANDLE_REAL);
-           }
-       };
-
-       AuraScript* GetAuraScript() const
-       {
-           return new spell_dru_berserk_AuraScript();
-       }
-};
-
 void AddSC_druid_spell_scripts()
 {
     new spell_dru_glyph_of_starfire();
@@ -367,5 +347,4 @@ void AddSC_druid_spell_scripts()
     new spell_dru_swift_flight_passive();
     new spell_dru_ferocious_bite();
     new spell_dru_mark_of_the_wild();
-    new spell_dru_berserk();
 }
