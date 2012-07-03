@@ -3050,6 +3050,10 @@ void SpellMgr::LoadSpellCustomAttr()
                 spellInfo->Effects[0].RadiusEntry = sSpellRadiusStore.LookupEntry(14);
                 spellInfo->Effects[1].RadiusEntry = sSpellRadiusStore.LookupEntry(14);
                 break;
+            case 88667: // Holy Word: Sanctuary
+            case 88668: // Holy Word: Sanctuary
+                spellInfo->SpellFamilyName = SPELLFAMILY_PRIEST;
+                break;
             case 87193: // Paralysis
             case 87194:
                 spellInfo->Effects[0].ApplyAuraName = SPELL_AURA_MOD_ROOT;
@@ -3366,29 +3370,6 @@ void SpellMgr::LoadSpellCustomAttr()
             case 53245: // Marked for Death (Rank 4)
             case 53246: // Marked for Death (Rank 5)
                 spellInfo->Effects[0].SpellClassMask = flag96(423937, 276955137, 2049);
-                break;
-            // Chakra spells needs moved to spellscripts this is a temp hack.
-            case 14751: // Chakra
-                spellInfo->Effects[0].ApplyAuraName = 0;
-                spellInfo->Effects[1].ApplyAuraName = 0;
-                spellInfo->Effects[2].ApplyAuraName = 0;
-                break;
-            case 81208: // Chakra: Serenity
-                spellInfo->Effects[1].ApplyAuraName = SPELL_AURA_DUMMY;
-                spellInfo->Effects[2].ApplyAuraName = SPELL_AURA_DUMMY;
-                break;
-            case 81206: // Chakra: Sanctuary
-                spellInfo->Effects[2].ApplyAuraName = SPELL_AURA_DUMMY;
-                break;
-            case 81585: // Chakra: Serenity replace
-                spellInfo->Effects[0].Effect = SPELL_EFFECT_APPLY_AURA;
-                spellInfo->Effects[0].ApplyAuraName = SPELL_AURA_SWAP_SPELLS;
-                spellInfo->Effects[0].BasePoints = 88684;
-                break;
-            case 81207: // Chakra: Sanctuary replace
-                spellInfo->Effects[0].Effect = SPELL_EFFECT_APPLY_AURA;
-                spellInfo->Effects[0].ApplyAuraName = SPELL_AURA_SWAP_SPELLS;
-                spellInfo->Effects[0].BasePoints = 88685;
                 break;
             case 42650: // Army of the Dead - can be interrupted
                 spellInfo->InterruptFlags = SPELL_INTERRUPT_FLAG_INTERRUPT;

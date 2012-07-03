@@ -148,6 +148,8 @@ void AuraApplication::_InitFlags(Unit* caster, uint8 effMask)
         }
         _flags |= positiveFound ? AFLAG_POSITIVE : AFLAG_NEGATIVE;
     }
+    if (GetBase()->GetSpellInfo()->HasAura(SPELL_AURA_SWAP_SPELLS))
+        _flags |= AFLAG_ANY_EFFECT_AMOUNT_SENT;
 }
 
 void AuraApplication::_HandleEffect(uint8 effIndex, bool apply)
@@ -1632,11 +1634,6 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
     // mods at aura apply or remove
     switch (GetSpellInfo()->SpellFamilyName)
     {
-        case SPELLFAMILY_GENERIC:
-            switch (GetId())
-            {
-            }
-            break;
         case SPELLFAMILY_ROGUE:
             // Stealth
             if (GetSpellInfo()->SpellFamilyFlags[0] & 0x00400000)
