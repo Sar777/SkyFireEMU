@@ -2826,7 +2826,7 @@ void SpellMgr::LoadSpellInfoStore()
         }
     }
 
-    sLog->outString(">> Loaded spell custom attributes in %u ms", GetMSTimeDiffToNow(oldMSTime));
+    sLog->outString(">> Loaded spell info store in %u ms", GetMSTimeDiffToNow(oldMSTime));
     sLog->outString();
 }
 
@@ -2891,6 +2891,9 @@ void SpellMgr::LoadSpellCustomAttr()
                 case SPELL_AURA_OBS_MOD_POWER:
                 case SPELL_AURA_POWER_BURN_MANA:
                     spellInfo->AttributesCu |= SPELL_ATTR0_CU_NO_INITIAL_THREAT;
+                    break;
+                case SPELL_AURA_SWAP_SPELLS:
+                    spellInfo->AttributesCu |= SPELL_ATTR0_CU_SCALABLE; // Meh i dont think this is a proper name..
                     break;
             }
 
@@ -3087,13 +3090,13 @@ void SpellMgr::LoadSpellCustomAttr()
                 spellInfo->ProcChance = 0;
                 break;
             case 2825:  // Bloodlust
-                spellInfo->Effects[0].TriggerSpell = 57724; // Sated
+                spellInfo->ExcludeCasterAuraSpell = 57724; // Sated
                 break;
             case 80353: // Time Warp
-                spellInfo->Effects[0].TriggerSpell = 80354; // Temporal Displacement
+                spellInfo->ExcludeCasterAuraSpell = 80354; // Temporal Displacement
                 break;
             case 90355: // Ancient Hysteria
-                spellInfo->Effects[0].TriggerSpell = 95809; // Insanity
+                spellInfo->ExcludeCasterAuraSpell = 95809; // Insanity
                 break;
             case 20335: // Heart of the Crusader
             case 20336:
@@ -3770,6 +3773,21 @@ void SpellMgr::LoadSpellCustomAttr()
     properties->Type = SUMMON_TYPE_TOTEM;
     properties = const_cast<SummonPropertiesEntry*>(sSummonPropertiesStore.LookupEntry(647)); // 52893
     properties->Type = SUMMON_TYPE_TOTEM;
+
+    for (uint32 i = 0; i < sTalentTabStore.GetNumRows(); ++i)
+    {
+        TalentTabEntry const* talentTab = sTalentTabStore.LookupEntry(i);
+        if (!talentTab)
+            continue;
+
+        spellInfo = mSpellInfoMap[talentTab->MasterySpellId[0]];
+        if (spellInfo)
+            spellInfo->AttributesCu |= SPELL_ATTR0_CU_SCALABLE;
+
+        spellInfo = mSpellInfoMap[talentTab->MasterySpellId[1]];
+        if (spellInfo)
+            spellInfo->AttributesCu |= SPELL_ATTR0_CU_SCALABLE;
+    }
 
     CreatureAI::FillAISpellInfo();
 

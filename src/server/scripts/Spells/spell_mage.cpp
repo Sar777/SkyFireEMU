@@ -39,6 +39,7 @@ enum MageSpells
     SPELL_MAGE_FLAMESTRIKE                       = 2120,
     SPELL_MAGE_BLASTWAVE                         = 11113,
     SPELL_MAGE_GLYPH_OF_ICE_BARRIER              = 63095,
+    SPELL_MAGE_CAUTERIZE_DAMAGE                  = 87023,
 };
 
 class spell_mage_blast_wave : public SpellScriptLoader
@@ -288,84 +289,6 @@ public:
     }
 };
 
-// Power Word Barrier
-class npc_power_word_barrier : public CreatureScript
-{
-public:
-    npc_power_word_barrier() : CreatureScript("npc_power_word_barrier") { }
-
-    struct npc_power_word_barrierAI : public ScriptedAI
-    {
-        npc_power_word_barrierAI(Creature *creature) : ScriptedAI(creature) {}
-
-        bool checker;
-        uint32 cron; // Duration
-
-        void Reset()
-        {
-            checker = false;
-            cron = 10000;
-            DoCast(me, 81781);
-        }
-
-        void InitializeAI()
-        {
-            ScriptedAI::InitializeAI();
-            Unit* owner = me->GetOwner();
-            if (!owner || owner->GetTypeId() != TYPEID_PLAYER)
-                return;
-
-            me->SetReactState(REACT_PASSIVE);
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-        }
-
-        void BarrierChecker(Unit* who)
-        {
-            if (who->isAlive() && !who->HasAura(81782))
-            {
-                me->CastSpell(who, 81782, true);
-            }
-
-            if (who->isAlive() && who->HasAura(81782))
-            {
-                if (AuraEffect const* aur = who->GetAuraEffect(81782, 0))
-                    aur->GetBase()->SetDuration(aur->GetSpellInfo()->GetMaxDuration(), true);
-            }
-        }
-
-        void UpdateAI(const uint32 diff)
-        {
-            if (cron <= diff)
-            {
-                if (!checker)
-                {
-                    checker = true;
-                    cron = 10000;   //10 seconds
-                }
-                else
-                    me->DisappearAndDie();
-            }
-            else
-                cron -= diff;
-
-           //Check friendly entities
-           std::list<Unit*> targets;
-            SkyFire::AnyFriendlyUnitInObjectRangeCheck u_check(me, me, 7.0f);
-            SkyFire::UnitListSearcher<SkyFire::AnyFriendlyUnitInObjectRangeCheck> searcher(me, targets, u_check);
-
-            me->VisitNearbyObject(7.0f, searcher);
-            for (std::list<Unit*>::const_iterator iter = targets.begin(); iter != targets.end(); ++iter)
-                BarrierChecker(*iter);
-        }
-    };
-
-    CreatureAI* GetAI(Creature* creature) const
-    {
-        return new npc_power_word_barrierAI(creature);
-    }
-};
-
 // Ice Barrier
 // Spell Id: 11426
 class spell_mage_ice_barrier : public SpellScriptLoader
@@ -397,12 +320,85 @@ public:
     }
 };
 
+// 86948, 86949 Cauterize talent aura
+class spell_mage_cauterize : public SpellScriptLoader
+{
+public:
+    spell_mage_cauterize() : SpellScriptLoader("spell_mage_cauterize") {}
+
+    class spell_mage_cauterize_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_mage_cauterize_AuraScript);
+
+        int32 absorbChance;
+        
+        bool Validate(SpellInfo const* /*spellEntry*/)
+        {
+            if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_CAUTERIZE_DAMAGE))
+                return false;
+
+            return true;
+        }
+
+        bool Load()
+        {
+            if (GetCaster()->GetTypeId() != TYPEID_PLAYER)
+                return false;
+
+            absorbChance = GetSpellInfo()->Effects[0].BasePoints;
+            return true;
+        }
+
+        void CalculateAmount(AuraEffect const * /*aurEff*/, int32 & amount, bool & /*canBeRecalculated*/)
+        {
+            // Set absorbtion amount to unlimited
+            amount = -1;
+        }
+
+        void Absorb(AuraEffect* aurEff, DamageInfo & dmgInfo, uint32 & absorbAmount)
+        {
+            Unit * caster = GetCaster();
+
+            if (!caster)
+                return;
+            
+            int32 remainingHealth = caster->GetHealth() - dmgInfo.GetDamage();
+            int32 cauterizeHeal = caster->CountPctFromMaxHealth(40);
+            
+            if (caster->ToPlayer()->HasSpellCooldown(SPELL_MAGE_CAUTERIZE_DAMAGE))
+                return;
+            
+            if (!roll_chance_i(absorbChance))
+                return;
+
+            if (remainingHealth <= 0)
+            {
+                absorbAmount = dmgInfo.GetDamage();
+                caster->CastCustomSpell(caster,SPELL_MAGE_CAUTERIZE_DAMAGE,NULL,&cauterizeHeal,NULL, true, NULL, aurEff);
+                caster->ToPlayer()->AddSpellCooldown(SPELL_MAGE_CAUTERIZE_DAMAGE, 0, time(NULL) + 60);
+            }
+        }
+
+        void Register()
+        {
+            DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_mage_cauterize_AuraScript::CalculateAmount, EFFECT_0, SPELL_AURA_SCHOOL_ABSORB);
+            OnEffectAbsorb += AuraEffectAbsorbFn(spell_mage_cauterize_AuraScript::Absorb, EFFECT_0);
+        }
+    };
+
+    AuraScript* GetAuraScript() const
+    {
+        return new spell_mage_cauterize_AuraScript();
+    }
+};
+
 void AddSC_mage_spell_scripts()
 {
-    new spell_mage_blast_wave;
-    new spell_mage_cold_snap;
+    new spell_mage_blast_wave();
+    new spell_mage_cold_snap();
     new spell_mage_frost_warding_trigger();
     new spell_mage_incanters_absorbtion_absorb();
     new spell_mage_incanters_absorbtion_manashield();
-    new spell_mage_ice_barrier;
+    new spell_mage_ice_barrier();
+    new spell_mage_cauterize();
 }

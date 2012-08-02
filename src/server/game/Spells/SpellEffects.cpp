@@ -1578,17 +1578,6 @@ void Spell::EffectDummy(SpellEffIndex effIndex)
                         if (m_caster->HasAura(48265) || m_caster->HasAura(48266)) // Only in frost/unholy presence
                             bp = m_caster->CountPctFromMaxHealth(aurEff->GetAmount());
 
-                // Blood Shield
-                if (AuraEffect const* aurEff = m_caster->GetAuraEffect(77513, 1))
-                {
-                    // Blood Presence
-                    if (m_caster->HasAura(48263))
-                    {
-                        int32 shield = CalculatePctN(bp, int32(aurEff->GetAmount() * m_caster->ToPlayer()->GetMasteryPoints()));
-                        m_caster->CastCustomSpell(m_caster, 77535, &shield, NULL, NULL, false);
-                    }
-                }
-
                 m_caster->CastCustomSpell(m_caster, 45470, &bp, NULL, NULL, false);
                 return;
             }
@@ -6039,12 +6028,14 @@ void Spell::EffectApplyGlyph(SpellEffIndex effIndex)
     uint8 minLevel = 0;
     switch (m_glyphIndex)
     {
-        case 0:
-        case 1: minLevel = 15; break;
-        case 2: minLevel = 50; break;
-        case 3: minLevel = 30; break;
-        case 4: minLevel = 70; break;
-        case 5: minLevel = 80; break;
+        case 1:
+        case 6: minLevel = 25; break;
+        case 2:
+        case 3:
+        case 7: minLevel = 50; break;
+        case 4:
+        case 5:
+        case 8: minLevel = 75; break;
     }
     if (minLevel && m_caster->getLevel() < minLevel)
     {
@@ -6067,7 +6058,7 @@ void Spell::EffectApplyGlyph(SpellEffIndex effIndex)
             }
 
             // remove old glyph
-            if (uint32 oldglyph = player->GetGlyph(m_glyphIndex))
+            if(uint32 oldglyph = player->GetGlyph(player->GetActiveSpec(), m_glyphIndex))
             {
                 if (GlyphPropertiesEntry const* old_gp = sGlyphPropertiesStore.LookupEntry(oldglyph))
                 {
@@ -6085,7 +6076,7 @@ void Spell::EffectApplyGlyph(SpellEffIndex effIndex)
     else
     {
         // Glyph removal
-        if (uint32 oldglyph = player->GetGlyph(m_glyphIndex))
+        if (uint32 oldglyph = player->GetGlyph(player->GetActiveSpec(), m_glyphIndex))
         {
             if (GlyphPropertiesEntry const *old_gp = sGlyphPropertiesStore.LookupEntry(oldglyph))
             {

@@ -373,7 +373,7 @@ pAuraEffectHandler AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNoImmediateEffect,                         // 315 - SPELL_AURA_UNDERWATER_WALKING todo
     &AuraEffect::HandleNoImmediateEffect,                         // 316 - SPELL_AURA_PERIODIC_HASTE implemented in AuraEffect::CalculatePeriodic
     &AuraEffect::HandleAuraModSpellPowerPercent,                  // 317 - SPELL_AURA_MOD_SPELL_POWER_PCT
-    &AuraEffect::HandleAuraModMastery,                            // 318 - SPELL_AURA_MASTERY allows and adds for player x% mastery.
+    &AuraEffect::HandleMastery,                                   // 318 - SPELL_AURA_MASTERY allows and adds for player x% mastery.
     &AuraEffect::HandleModMeleeSpeedPct,                          // 319 -
     &AuraEffect::HandleModMeleeRangedSpeedPct,                    // 320 -
     &AuraEffect::HandleNULL,                                      // 321 -
@@ -3792,17 +3792,16 @@ void AuraEffect::HandleModBaseResistance(AuraApplication const* aurApp, uint8 mo
     }
 }
 
-void AuraEffect::HandleAuraModMastery(AuraApplication const* aurApp, uint8 mode, bool apply) const
+void AuraEffect::HandleMastery(AuraApplication const* aurApp, uint8 mode, bool apply) const
 {
-    Unit* target = aurApp->GetTarget();
-
-    if (!target || target->GetTypeId() != TYPEID_PLAYER)
+    if (!(mode & AURA_EFFECT_HANDLE_REAL))
         return;
 
-    int32 rating = target->ToPlayer()->CalculateMasteryRating(GetAmount());
-    target->ToPlayer()->ApplyRatingMod(CR_MASTERY, rating, apply);
+    Player* target = aurApp->GetTarget()->ToPlayer();
+    if (!target)
+        return;
 
-    target->ToPlayer()->UpdateMasteryPercentage();
+    target->UpdateMastery();
 }
 
 void AuraEffect::HandleModTargetResistance(AuraApplication const* aurApp, uint8 mode, bool apply) const
@@ -5353,7 +5352,7 @@ void AuraEffect::HandleAuraDummy(AuraApplication const* aurApp, uint8 mode, bool
                             target->CastSpell(target, 58601, true); // dal
                         }
                         break;
-                        case 65213:	// Throw Oil Aura (Quest=13890)
+                        case 65213:    // Throw Oil Aura (Quest=13890)
                         {
                             if (caster->GetTypeId() != TYPEID_PLAYER)
                                 return;
