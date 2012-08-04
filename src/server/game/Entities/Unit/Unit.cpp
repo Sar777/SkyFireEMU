@@ -2213,18 +2213,28 @@ uint32 Unit::CalculateDamage(WeaponAttackType attType, bool normalized, bool add
 
 float Unit::CalculateLevelPenalty(SpellInfo const* spellProto) const
 {
-    if (spellProto->SpellLevel <= 0 || spellProto->SpellLevel >= spellProto->MaxLevel)
+    if (!spellProto->SpellLevel || !spellProto->MaxLevel)
+        return 1.0f;
+
+    if (spellProto->MaxLevel <= 0)
+        return 1.0f;
+    
+    //if caster level is lower that max caster level
+    if (getLevel() < spellProto->MaxLevel)
         return 1.0f;
 
     float LvlPenalty = 0.0f;
+    LvlPenalty = (22.0f + float (spellProto->MaxLevel) - float (getLevel())) / 20.0f;
+    
+    //to prevent positive effect
+    if (LvlPenalty > 1.0f)
+        return 1.0f;
+    
+    //level penalty is capped at 0
+    if (LvlPenalty < 0.0f)
+        return 0.0f;
 
-    if (spellProto->SpellLevel < 20)
-        LvlPenalty = 20.0f - spellProto->SpellLevel * 3.75f;
-    float LvlFactor = (float(spellProto->SpellLevel) + 6.0f) / float(getLevel());
-    if (LvlFactor > 1.0f)
-        LvlFactor = 1.0f;
-
-    return AddPctF(LvlFactor, -LvlPenalty);
+    return LvlPenalty;
 }
 
 void Unit::SendMeleeAttackStart(Unit* victim)
@@ -9072,15 +9082,18 @@ bool Unit::HandleProcTriggerSpell(Unit* victim, uint32 damage, AuraEffect* trigg
             if (GetTypeId() != TYPEID_PLAYER)
                 return false;
 
+            if (cooldown && ToPlayer()->HasSpellCooldown(96171))
+                return false;
+
             if(!HealthBelowPctDamaged(30, damage)) // Only proc if it brings us below 30% health
                 return false;
 
-            else if (!ToPlayer()->HasSpellCooldown(96171))
-            {
-                ToPlayer()->RemoveSpellCooldown(48982, true); // Remove cooldown of rune tap
-                CastSpell(this, 96171, true); // next rune tap wont cost runes
-                ToPlayer()->AddSpellCooldown(96171, 0, time(NULL) + 45);
-            }
+            ToPlayer()->RemoveSpellCooldown(48982, true); // Remove cooldown of rune tap
+            CastSpell(this, 96171, true); // next rune tap wont cost runes
+
+            if (cooldown)
+                ToPlayer()->AddSpellCooldown(96171, NULL, time(NULL) + cooldown);
+
             break;
         }
         // Sudden Doom
@@ -9158,11 +9171,6 @@ bool Unit::HandleProcTriggerSpell(Unit* victim, uint32 damage, AuraEffect* trigg
     // dummy basepoints or other customs
     switch (trigger_spell_id)
     {
-        case 81162: // Will of Necropolis
-            if (!HealthBelowPctDamaged(30, damage))
-                return false;
-
-        break;
         case 92184: // Lead Plating
         case 92233: // Tectonic Shift
         case 92355: // Turn of the Worm
