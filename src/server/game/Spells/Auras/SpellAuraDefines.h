@@ -369,7 +369,7 @@ enum AuraType
     SPELL_AURA_MOD_MINIMUM_SPEED                   = 305,
     SPELL_AURA_306                                 = 306,
     SPELL_AURA_HEAL_ABSORB_TEST                    = 307,
-    SPELL_AURA_MOD_CRIT_CHANCE_FOR_CASTER          = 308,    // NYI
+    SPELL_AURA_MOD_CRIT_CHANCE_FOR_CASTER_SPELL    = 308,
     SPELL_AURA_309                                 = 309,
     SPELL_AURA_MOD_CREATURE_AOE_DAMAGE_AVOIDANCE   = 310,
     SPELL_AURA_311                                 = 311,
@@ -389,7 +389,7 @@ enum AuraType
     SPELL_AURA_325                                 = 325,
     SPELL_AURA_326                                 = 326,    // This aura is for phasing based on the miscvalue
     SPELL_AURA_327                                 = 327,
-    SPELL_AURA_PROC_ON_POWER_AMOUNT                = 328,    
+    SPELL_AURA_PROC_ON_POWER_AMOUNT                = 328,
     SPELL_AURA_MOD_RUNE_REGEN_SPEED                = 329,    // NYI - This aura is for increasing power regeneration percent
     SPELL_AURA_CAST_WHILE_WALKING                  = 330,    // This aura is for allowing certain spells to be used while walking
     SPELL_AURA_331                                 = 331,

@@ -2021,6 +2021,7 @@ class Player : public Unit, public GridObject<Player>
         void ApplyHealthRegenBonus(int32 amount, bool apply);
         void UpdateManaRegen();
         void UpdateRuneRegen(RuneType rune);
+        void UpdateAllRunesRegen();
 
         uint64 GetLootGUID() const { return _lootGuid; }
         void SetLootGUID(uint64 guid) { _lootGuid = guid; }
@@ -2238,6 +2239,7 @@ class Player : public Unit, public GridObject<Player>
 
         uint32 _regenTimerCount;
         uint32 _holyPowerRegenTimerCount; // Holy power updates ticks at every 10secs.
+        uint32 _focusRegenTimerCount; // Focus power updates ticks at every second.
 
         /*********************************************************/
         /***               BATTLEGROUND SYSTEM                 ***/
@@ -2587,7 +2589,8 @@ class Player : public Unit, public GridObject<Player>
         RuneType GetBaseRune(uint8 index) const { return RuneType(_runes->runes[index].BaseRune); }
         RuneType GetCurrentRune(uint8 index) const { return RuneType(_runes->runes[index].CurrentRune); }
         uint32 GetRuneCooldown(uint8 index) const { return _runes->runes[index].Cooldown; }
-        uint32 GetRuneBaseCooldown(uint8 index);
+        uint32 GetRuneBaseCooldown(uint8 index) const { return GetRuneTypeBaseCooldown(GetBaseRune(index)); }
+        uint32 GetRuneTypeBaseCooldown(RuneType runeType) const;
         bool IsBaseRuneSlotsOnCooldown(RuneType runeType) const;
         RuneType GetLastUsedRune() { return _runes->lastUsedRune; }
         void SetLastUsedRune(RuneType type) { _runes->lastUsedRune = type; }

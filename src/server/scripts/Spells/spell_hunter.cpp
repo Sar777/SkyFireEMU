@@ -46,6 +46,9 @@ enum HunterSpells
     HUNTER_PET_SPELL_FOCUS_FIRE_REGEN            = 83468,
     HUNTER_VISUAL_FOCUS_FIRE                     = 88843,
     HUNTER_PET_AURA_FRENZY_TRIGGER               = 20784, // Tamed Pet Passive 07 (DND)
+    HUNTER_SPELL_SERPENT_STING                   = 1978,
+    HUNTER_SPELL_COBRA_SHOT_ENERGIZE             = 91954,
+    HUNTER_SPELL_STEADY_SHOT_ENERGIZE            = 77443,
 };
 
 // 53209 Chimera Shot
@@ -71,10 +74,11 @@ public:
             if (!target)
                 return;
 
-            if (Aura* serpentSting = target->GetAura(1978, GetCaster()->GetGUID()))
-                serpentSting->RefreshDuration();
+            // Get normal serpent sting or Serpent Spread's proc result one
+            if (AuraEffect* serpentSting = target->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_HUNTER, 16384, 0, 0, GetCaster()->GetGUID()))
+                serpentSting->GetBase()->RefreshDuration();
 
-            GetCaster()->CastSpell(GetCaster(),HUNTER_SPELL_CHIMERA_SHOT_HEALING,true);
+            GetCaster()->CastSpell(GetCaster(), HUNTER_SPELL_CHIMERA_SHOT_HEALING, true);
         }
 
         void Register()
@@ -728,7 +732,7 @@ public:
     }
 };
 
-// 83676 Resistance is Futile 
+// 83676 Resistance is Futile
 class spell_hun_resistance_is_futile : public SpellScriptLoader
 {
 public:
@@ -746,13 +750,13 @@ public:
             if (!auraBearer || !playerTarget)
                 return;
 
-            AuraEffect const* resistanceIsFutileTalent = playerTarget->GetDummyAuraEffect(SPELLFAMILY_HUNTER,5119,0);
+            AuraEffect const* resistanceIsFutileTalent = playerTarget->GetDummyAuraEffect(SPELLFAMILY_HUNTER, 5119, 0);
 
             if (!resistanceIsFutileTalent)
                 return;
 
             if (auraBearer->isMoving() && roll_chance_i(resistanceIsFutileTalent->GetAmount()))
-                playerTarget->CastSpell(playerTarget,82897,true);
+                playerTarget->CastSpell(playerTarget, 82897, true);
         }
 
         void Register()
@@ -764,6 +768,81 @@ public:
     AuraScript* GetAuraScript() const
     {
         return new spell_hun_resistance_is_futile_AuraScript();
+    }
+};
+
+// 77767 Cobra Shot
+class spell_hun_cobra_shot : public SpellScriptLoader
+{
+public:
+    spell_hun_cobra_shot() : SpellScriptLoader("spell_hun_cobra_shot") { }
+
+    class spell_hun_cobra_shot_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_hun_cobra_shot_SpellScript)
+        bool Validate(SpellInfo const* /*spellEntry*/)
+        {
+            if (!sSpellMgr->GetSpellInfo(HUNTER_SPELL_COBRA_SHOT_ENERGIZE))
+                return false;
+            return true;
+        }
+
+        void HandleScriptEffect(SpellEffIndex /*effIndex*/)
+        {
+            Unit* target = GetHitUnit();
+
+            if (!target)
+                return;
+
+            // Get normal serpent sting or Serpent Spread's proc result one
+            if (AuraEffect* serpentSting = target->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_HUNTER, 16384, 0, 0, GetCaster()->GetGUID()))
+                serpentSting->GetBase()->SetDuration(serpentSting->GetBase()->GetDuration() + (GetSpellInfo()->Effects[EFFECT_1].BasePoints * 1000));
+
+            GetCaster()->CastSpell(GetCaster(), HUNTER_SPELL_COBRA_SHOT_ENERGIZE, true);
+        }
+
+        void Register()
+        {
+            OnEffectHitTarget += SpellEffectFn(spell_hun_cobra_shot_SpellScript::HandleScriptEffect, EFFECT_1, SPELL_EFFECT_SCRIPT_EFFECT);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_hun_cobra_shot_SpellScript();
+    }
+};
+
+// 56641 Steady Shot
+class spell_hun_steady_shot : public SpellScriptLoader
+{
+public:
+    spell_hun_steady_shot() : SpellScriptLoader("spell_hun_steady_shot") { }
+
+    class spell_hun_steady_shot_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_hun_steady_shot_SpellScript)
+        bool Validate(SpellInfo const* /*spellEntry*/)
+        {
+            if (!sSpellMgr->GetSpellInfo(HUNTER_SPELL_STEADY_SHOT_ENERGIZE))
+                return false;
+            return true;
+        }
+
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            GetCaster()->CastSpell(GetCaster(), HUNTER_SPELL_STEADY_SHOT_ENERGIZE, true);
+        }
+
+        void Register()
+        {
+            OnEffectHitTarget += SpellEffectFn(spell_hun_steady_shot_SpellScript::HandleDummy, EFFECT_2, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const
+    {
+        return new spell_hun_steady_shot_SpellScript();
     }
 };
 
@@ -783,4 +862,6 @@ void AddSC_hunter_spell_scripts()
     new spell_hun_focus_fire();
     new spell_hun_frenzy_effect();
     new spell_hun_resistance_is_futile();
+    new spell_hun_cobra_shot();
+    new spell_hun_steady_shot();
 }

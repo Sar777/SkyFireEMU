@@ -689,6 +689,8 @@ Player::Player(WorldSession* session): Unit(true), _achievementMgr(this), _reput
 
     _regenTimer = 0;
     _regenTimerCount = 0;
+    _focusRegenTimerCount = 0;
+    _holyPowerRegenTimerCount = 0;
     _weaponChangeTimer = 0;
 
     _zoneUpdateId = 0;
@@ -981,6 +983,8 @@ bool Player::Create(uint32 guidlow, CharacterCreateInfo* createInfo)
     }
     SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER);
     SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);               // fix cast time showed in spell tooltip on client
+    SetFloatValue(PLAYER_FIELD_MOD_HASTE, 1.0f);
+    SetFloatValue(PLAYER_FIELD_MOD_RANGED_HASTE, 1.0f);
     SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 1.0f);            // default for players in 3.0.3
 
                                                             // -1 is default value
@@ -2450,8 +2454,12 @@ void Player::RegenerateAll()
     //    return;
 
     _regenTimerCount += _regenTimer;
+
     if (getClass() == CLASS_PALADIN)
         _holyPowerRegenTimerCount += _regenTimer;
+
+    if (getClass() == CLASS_HUNTER)
+        _focusRegenTimerCount += _regenTimer;
 
     Regenerate(POWER_ENERGY);
     Regenerate(POWER_MANA);
@@ -2488,17 +2496,18 @@ void Player::RegenerateAll()
 
         Regenerate(POWER_RAGE);
 
-        if (getClass() == CLASS_PALADIN)
-            Regenerate(POWER_HOLY_POWER);
-
         if (getClass() == CLASS_DEATH_KNIGHT)
             Regenerate(POWER_RUNIC_POWER);
 
-        if (getClass() == CLASS_HUNTER)
-            Regenerate(POWER_FOCUS);
-
         _regenTimerCount -= 2000;
     }
+
+    if (_focusRegenTimerCount >= 1000 && getClass() == CLASS_HUNTER)
+    {
+        Regenerate(POWER_FOCUS);
+        _focusRegenTimerCount -= 1000;
+    }
+
     if (_holyPowerRegenTimerCount >= 10000 && getClass() == CLASS_PALADIN)
     {
         Regenerate(POWER_HOLY_POWER);
@@ -2524,7 +2533,12 @@ void Player::Regenerate(Powers power)
     float addvalue = 0.0f;
 
     //powers now benefit from haste.
-    float haste = (2 - GetFloatValue(UNIT_MOD_CAST_SPEED));
+    // 1) Hunter's focus
+    float rangedHaste = GetFloatValue(PLAYER_FIELD_MOD_RANGED_HASTE);
+    // 2) Rogue's Energy
+    float meleeHaste = GetFloatValue(PLAYER_FIELD_MOD_HASTE);
+    // 3) Mana regen
+    float spellHaste = GetFloatValue(UNIT_MOD_CAST_SPEED);
 
     switch (power)
     {
@@ -2537,9 +2551,9 @@ void Player::Regenerate(Powers power)
                 ManaIncreaseRate = sWorld->getRate(RATE_POWER_MANA) * (2.066f - (getLevel() * 0.066f));
 
             if (recentCast) // SkyFire Updates Mana in intervals of 2s, which is correct
-                addvalue += GetFloatValue(UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER) *  ManaIncreaseRate * 0.001f * _regenTimer * haste;
+                addvalue += GetFloatValue(UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER) *  ((0.001f * _regenTimer) + CalculatePctF(0.001f, spellHaste)) * ManaIncreaseRate;
             else
-                addvalue += GetFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER) * ManaIncreaseRate * 0.001f * _regenTimer * haste;
+                addvalue += GetFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER) *  ((0.001f * _regenTimer) + CalculatePctF(0.001f, spellHaste)) * ManaIncreaseRate;
             break;
         }
         case POWER_RAGE:                                                  // Regenerate rage
@@ -2547,21 +2561,21 @@ void Player::Regenerate(Powers power)
             if (!isInCombat() && !HasAuraType(SPELL_AURA_INTERRUPT_REGEN))
             {
                 float RageDecreaseRate = sWorld->getRate(RATE_POWER_RAGE_LOSS);
-                addvalue += -20 * RageDecreaseRate / haste;               // 2 rage by tick (= 2 seconds => 1 rage/sec)
+                addvalue += -20 * RageDecreaseRate / meleeHaste;               // 2 rage by tick (= 2 seconds => 1 rage/sec)
             }
             break;
         }
         case POWER_FOCUS:
-            addvalue += 12.0f * _modAttackSpeedPct[RANGED_ATTACK] * sWorld->getRate(RATE_POWER_FOCUS) * haste;
+            addvalue += (6.0f + CalculatePctF(6.0f, rangedHaste)) * sWorld->getRate(RATE_POWER_FOCUS);
             break;
         case POWER_HOLY_POWER:                                           // Regenerate holy power
         {
             if (!isInCombat())
-                addvalue += -0.2f;                                       // remove 1 each 10 sec
+                addvalue += -1.0f;                                       // remove 1 each 10 sec
             break;
         }
         case POWER_ENERGY:                                               // Regenerate energy (rogue)
-            addvalue += 0.01f * _regenTimer * sWorld->getRate(RATE_POWER_ENERGY) * haste;
+            addvalue += ((0.01f * _regenTimer) + CalculatePctF(0.01f, meleeHaste)) * sWorld->getRate(RATE_POWER_ENERGY);
             break;
         case POWER_RUNIC_POWER:
         {
@@ -3222,7 +3236,9 @@ void Player::InitStatsForLevel(bool reapplyMods)
     UpdateSkillsForLevel ();
 
     // set default cast time multiplier
-    SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);
+    SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f); // Spell
+    SetFloatValue(PLAYER_FIELD_MOD_HASTE, 1.0f); // Melee
+    SetFloatValue(PLAYER_FIELD_MOD_RANGED_HASTE, 1.0f); // Ranged
 
     // reset size before reapply auras
     SetFloatValue(OBJECT_FIELD_SCALE_X, 1.0f);
@@ -6050,6 +6066,8 @@ void Player::ApplyRatingMod(CombatRating cr, int32 value, bool apply)
             float RatingChange = value * GetRatingMultiplier(cr);
             ApplyAttackTimePercentMod(BASE_ATTACK, RatingChange, apply);
             ApplyAttackTimePercentMod(OFF_ATTACK, RatingChange, apply);
+            if (getClass() == CLASS_DEATH_KNIGHT)
+                UpdateAllRunesRegen();
             break;
         }
         case CR_HASTE_RANGED:
@@ -22375,6 +22393,9 @@ inline void BeforeVisibilityDestroy<Creature>(Creature* t, Player* p)
 
 void Player::UpdateVisibilityOf(WorldObject* target)
 {
+    if (!target)
+        return;
+
     if (HaveAtClient(target))
     {
         if (!canSeeOrDetect(target, false, true))
@@ -24334,17 +24355,31 @@ void Player::UpdateCharmedAI()
     }
 }
 
-uint32 Player::GetRuneBaseCooldown(uint8 index)
+uint32 Player::GetRuneTypeBaseCooldown(RuneType runeType) const
 {
-    uint8 rune = GetBaseRune(index);
-    uint32 cooldown = RUNE_BASE_COOLDOWN;
+    float cooldown = RUNE_BASE_COOLDOWN;
+    float hastePct = 0.0f;
 
     AuraEffectList const& regenAura = GetAuraEffectsByType(SPELL_AURA_MOD_POWER_REGEN_PERCENT);
     for (AuraEffectList::const_iterator i = regenAura.begin();i != regenAura.end(); ++i)
     {
-        if ((*i)->GetMiscValue() == POWER_RUNE && (*i)->GetMiscValueB() == rune)
-            cooldown = cooldown*(100-(*i)->GetAmount())/100;
+        if ((*i)->GetMiscValue() == POWER_RUNE && (*i)->GetMiscValueB() == runeType)
+            cooldown *= 1.0f - (*i)->GetAmount() / 100.0f;
     }
+
+    // Runes cooldown are now affected by player's haste from equipment ...
+    hastePct = GetRatingBonusValue(CR_HASTE_MELEE);
+
+    // ... and some auras.
+    AuraEffectList const& meleeHasteAura = GetAuraEffectsByType(SPELL_AURA_MOD_MELEE_HASTE);
+    for (AuraEffectList::const_iterator i = meleeHasteAura.begin();i != meleeHasteAura.end(); ++i)
+        hastePct += (*i)->GetAmount();
+
+    AuraEffectList const& meleeHasteAura2 = GetAuraEffectsByType(SPELL_AURA_MOD_MELEE_ATTACK_SPEED);
+    for (AuraEffectList::const_iterator i = meleeHasteAura2.begin();i != meleeHasteAura2.end(); ++i)
+        hastePct += (*i)->GetAmount();
+
+    cooldown *=  1.0f - (hastePct / 100.0f);
 
     return cooldown;
 }
@@ -25516,6 +25551,9 @@ void Player::_SaveEquipmentSets(SQLTransaction& trans)
 
 void Player::_SaveBGData(SQLTransaction& trans)
 {
+    if (!MapManager::IsValidMapCoord(_bgData.joinPos.GetMapId(), _bgData.joinPos.GetPositionX(), _bgData.joinPos.GetPositionY(), _bgData.joinPos.GetPositionZ()))
+        return;
+
     PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_PLAYER_BGDATA);
     stmt->setUInt32(0, GetGUIDLow());
     trans->Append(stmt);

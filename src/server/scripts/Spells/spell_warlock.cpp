@@ -188,7 +188,7 @@ class spell_warl_create_healthstone : public SpellScriptLoader
             {
                 Unit* caster = GetCaster();
                 if (caster)
-                    caster->CastSpell(caster,WARLOCK_HEALTHSTONE_CREATE,false);
+                    caster->CastSpell(caster, WARLOCK_HEALTHSTONE_CREATE, false);
             }
 
             void Register()
@@ -275,7 +275,7 @@ public:
         {
             if (Unit* caster = GetCaster())
             {
-                if (caster->CountPctFromMaxHealth(GetSpellInfo()->Effects[EFFECT_2].CalcValue()) >= caster->GetHealth()) // You cant kill yourself with this
+                if (caster->CountPctFromMaxHealth(15) >= caster->GetHealth()) // You cant kill yourself with this
                     return SPELL_FAILED_FIZZLE;
 
                 return SPELL_CAST_OK;
@@ -287,7 +287,7 @@ public:
         {
             if (Unit* caster = GetCaster())
             {
-                int32 damage = int32(caster->CountPctFromMaxHealth(GetSpellInfo()->Effects[EFFECT_2].CalcValue()));
+                int32 damage = int32(caster->CountPctFromMaxHealth(15));
                 int32 mana = 0;
 
                 float multiplier = 1.2f;
@@ -429,7 +429,7 @@ public:
 
         void Register()
         {
-            OnEffectRemove += AuraEffectRemoveFn(spell_warl_drain_soul_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE,AURA_EFFECT_HANDLE_REAL);
+            OnEffectRemove += AuraEffectRemoveFn(spell_warl_drain_soul_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
             OnEffectPeriodic += AuraEffectPeriodicFn(spell_warl_drain_soul_AuraScript::OnPeriodic, EFFECT_0, SPELL_AURA_PERIODIC_DAMAGE);
         }
     };
@@ -524,7 +524,7 @@ public:
     }
 };
 
-// 687,28176 Demon armor and Fel armor swap controller
+// 687, 28176 Demon armor and Fel armor swap controller
 class spell_warl_nether_ward_swap_supressor: public SpellScriptLoader
 {
 public:

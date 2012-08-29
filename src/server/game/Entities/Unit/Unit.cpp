@@ -5676,12 +5676,6 @@ bool Unit::HandleDummyAuraProc(Unit* victim, uint32 damage, AuraEffect* triggere
                     triggered_spell_id = 81301;
                     break;
                 }
-                // Glyph of Life Tap
-                case 63320:
-                {
-                    triggered_spell_id = 63321; // Life Tap
-                    break;
-                }
                 // Purified Shard of the Scale - Onyxia 10 Caster Trinket
                 case 69755:
                 {
@@ -6490,14 +6484,6 @@ bool Unit::HandleDummyAuraProc(Unit* victim, uint32 damage, AuraEffect* triggere
                     }
                     break;
                 }
-                //Mind Melt
-                case 87160:
-                case 81292:
-                {
-                    if (procSpell->Id != 73510)
-                        return false;
-                    break;
-                }
                 // Atonement
                 case 14523:
                 case 81749:
@@ -6829,6 +6815,30 @@ bool Unit::HandleDummyAuraProc(Unit* victim, uint32 damage, AuraEffect* triggere
         {
             switch (dummySpell->SpellIconID)
             {
+                case 2225: // Serpent Spread
+                {
+                                   // Proc only on multi-shot
+                    if (!target || procSpell->Id != 2643)
+                        return false;
+
+                    switch(triggerAmount)
+                    {
+                        case 30:
+                        {
+                            // Serpent sting 6s duration
+                            triggered_spell_id = 88453;
+                            break;
+                        }
+                        case 60:
+                        {
+                            // Serpent sting 9s duration
+                            triggered_spell_id = 88466;
+                            break;
+                        }
+                        break;
+                    }
+                    break;
+                }
                 case 3524: // Marked for Death
                 {
                     if (!roll_chance_i(triggerAmount))
@@ -6934,6 +6944,11 @@ bool Unit::HandleDummyAuraProc(Unit* victim, uint32 damage, AuraEffect* triggere
                     }
                     else
                         return false;
+                }
+                case 82661: // Aspect of the Fox
+                {
+                    EnergizeBySpell(this,82661,2,POWER_FOCUS);
+                    break;
                 }
                 case 34477: // Misdirection
                 {
@@ -8423,9 +8438,32 @@ bool Unit::HandleAuraProc(Unit* victim, uint32 damage, Aura* triggeredByAura, Sp
         }
         case SPELLFAMILY_MAGE:
         {
-            // Combustion
             switch (dummySpell->Id)
             {
+                // Improved Polymorph
+                case 118:
+                {
+                    *handled = true; 
+                    Unit* caster = triggeredByAura->GetCaster();
+
+                    if (!caster)
+                        return false;
+                                // Rank 1          // Cooldown Marker
+                    if (caster->HasAura(11210) && !this->HasAura(87515, caster->GetGUID()))
+                    {
+                        CastSpell(this,83046,true,NULL,NULL,caster->GetGUID()); // 1.5s stun
+                        CastSpell(this,87515,true,NULL,NULL,caster->GetGUID()); // Cooldown marker
+                        return true;
+                    }           // Rank 2
+                    if (caster->HasAura(12592) && !this->HasAura(87515, caster->GetGUID()))
+                    {
+                        CastSpell(this,83047,true,NULL,NULL,caster->GetGUID()); // 3s stun
+                        CastSpell(this,87515,true,NULL,NULL,caster->GetGUID()); // Cooldown marker
+                        return true;
+                    }
+                    break;
+                }
+                // Combustion
                 case 11129:
                 {
                     *handled = true;
@@ -11394,6 +11432,19 @@ bool Unit::isSpellCrit(Unit* victim, SpellInfo const* spellProto, SpellSchoolMas
         default:
             return false;
     }
+    // bonus for caster from specific auras
+    AuraEffectList const& mCritChanceForCasterSpell = victim->GetAuraEffectsByType(SPELL_AURA_MOD_CRIT_CHANCE_FOR_CASTER_SPELL);
+    for (AuraEffectList::const_iterator i = mCritChanceForCasterSpell.begin(); i != mCritChanceForCasterSpell.end(); ++i)
+    {
+        if (!(*i)->IsAffectedOnSpell(spellProto))
+            continue;
+
+        if ((*i)->GetCasterGUID() != this->GetGUID())
+            continue;
+
+        crit_chance += (*i)->GetAmount();
+    }
+            
     // percent done
     // only players use intelligence for critical chance computations
     if (Player* modOwner = GetSpellModOwner())
@@ -11500,15 +11551,6 @@ uint32 Unit::SpellCriticalDamageBonus(SpellInfo const* spellProto, uint32 damage
         if (Unit* owner = GetOwner())
             if (owner->HasAura(53253) || owner->HasAura(53252)) // Invigoration rank 1 & 2
                 owner->CastSpell(owner, 53398, true);
-    }
-
-    if (spellProto && spellProto->Id == 8092) // Mind Blast
-    {
-        if (HasAura(87192)) // Paralysis rank 1
-            CastSpell(victim, 87193, true);
-
-        if (HasAura(87195)) // Paralysis rank 2
-            CastSpell(victim, 87194, true);
     }
 
     for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
@@ -14941,7 +14983,7 @@ void Unit::ProcDamageAndSpellFor(bool isVictim, Unit* target, uint32 procFlag, u
                         if (procSpell && HandleSpellCritChanceAuraProc(target, damage, triggeredByAura, procSpell, procFlag, procExtra, cooldown))
                             takeCharges = true;
                         break;
-                    // CC Auras which use their amount amount to drop
+                    // CC Auras which use their amount amount to drop, the amount is set on AuraEffect::CalculateAmount
                     // Are there any more auras which need this?
                     case SPELL_AURA_MOD_CONFUSE:
                     case SPELL_AURA_MOD_FEAR:
@@ -15350,11 +15392,29 @@ void Unit::ApplyAttackTimePercentMod(WeaponAttackType att, float val, bool apply
     {
         ApplyPercentModFloatVar(_modAttackSpeedPct[att], val, !apply);
         ApplyPercentModFloatValue(UNIT_FIELD_BASEATTACKTIME+att, val, !apply);
+
+        if (GetTypeId() == TYPEID_PLAYER && att == BASE_ATTACK)
+        {
+            ApplyPercentModFloatValue(PLAYER_FIELD_MOD_HASTE, val, !apply);
+        }
+        else if (GetTypeId() == TYPEID_PLAYER && att == RANGED_ATTACK)
+        {
+            ApplyPercentModFloatValue(PLAYER_FIELD_MOD_RANGED_HASTE, val, !apply);
+        }
     }
     else
     {
         ApplyPercentModFloatVar(_modAttackSpeedPct[att], -val, apply);
         ApplyPercentModFloatValue(UNIT_FIELD_BASEATTACKTIME+att, -val, apply);
+
+        if (GetTypeId() == TYPEID_PLAYER && att == BASE_ATTACK)
+        {
+            ApplyPercentModFloatValue(PLAYER_FIELD_MOD_HASTE, -val, apply);
+        }
+        else if (GetTypeId() == TYPEID_PLAYER && att == RANGED_ATTACK)
+        {
+            ApplyPercentModFloatValue(PLAYER_FIELD_MOD_RANGED_HASTE, -val, apply);
+        }
     }
     m_attackTimer[att] = uint32(GetAttackTime(att) * _modAttackSpeedPct[att] * remainingTimePct);
 }
